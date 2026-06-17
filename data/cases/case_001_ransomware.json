@@ -1,0 +1,249 @@
+{
+  "case_id": "DFIR-2026-001",
+  "case_name": "Meridian Logistics Ransomware Incident",
+  "scenario": {
+    "incident_summary": "On Monday morning, June 15, 2026, at approximately 06:42 local time, IT operations at Meridian Logistics began receiving alerts from their EDR platform indicating widespread file encryption across multiple endpoints and at least two file servers. Employees arriving on-site found their workstations displaying a ransom note demanding $2.4M USD in Bitcoin within 72 hours. File extensions on encrypted files have been changed to .lock_b1d. Operations across three warehouse locations have been halted.",
+    "victim_organization": {
+      "name": "Meridian Logistics Inc.",
+      "industry": "Third-party logistics and freight forwarding",
+      "size": 380,
+      "location": "Columbus, Ohio, USA",
+      "compliance_context": [
+        "Ohio Data Protection Act",
+        "DOT Hazmat reporting requirements",
+        "Customer SLA penalties exceeding $50k/day per major account"
+      ]
+    },
+    "human_in_room": {
+      "name": "Priya Achterberg",
+      "role": "Director of IT Security",
+      "experience_level": "8 years in IT operations, 2 years in security leadership, first major incident of this severity"
+    },
+    "human_opening_message": "We're in trouble. About 40% of our shares are encrypted, the file extensions are now .lock_b1d, and there's a ransom note on every desktop. I've isolated the network at the edge but I don't know how they got in or whether they're still inside. EDR woke me up at 4am. I need to know what to collect first — I've got board members on a call in 90 minutes and they're going to ask whether to pay."
+  },
+  "expected_liaison_collection_plan": [
+    {
+      "step": 1,
+      "action": "Acquire the ransom note text and any embedded identifiers",
+      "rationale": "Identifies the ransomware family and may contain a victim ID linking to a known affiliate",
+      "evidence_category": "ransom_note"
+    },
+    {
+      "step": 2,
+      "action": "Collect at least three encrypted file samples from different shares",
+      "rationale": "Confirms encryption scheme, may help identify the variant, and is required if a decryptor is later available",
+      "evidence_category": "encrypted_sample"
+    },
+    {
+      "step": 3,
+      "action": "Pull EDR alert timeline for the 14 days preceding detection",
+      "rationale": "Establishes initial access vector and dwell time",
+      "evidence_category": "edr_alerts"
+    },
+    {
+      "step": 4,
+      "action": "Pull firewall and proxy logs for the same 14-day window",
+      "rationale": "Identifies C2 communication and possible data exfiltration before encryption",
+      "evidence_category": "network_traffic"
+    },
+    {
+      "step": 5,
+      "action": "Acquire DNS query logs from internal resolvers for the 14-day window",
+      "rationale": "C2 callbacks and beaconing often surface as anomalous DNS patterns",
+      "evidence_category": "dns_queries"
+    },
+    {
+      "step": 6,
+      "action": "Acquire memory images from the two affected file servers and three confirmed-infected endpoints before reboot",
+      "rationale": "Captures running malware processes, injected code, and credentials that disappear on reboot",
+      "evidence_category": "memory_artifacts"
+    }
+  ],
+  "evidence_bundle": {
+    "ransom_note": {
+      "text_content": "Your network has been encrypted by LockB1D. To recover your files you must contact us within 72 hours at the address below. Your victim ID is MRDN-77824. Do not contact law enforcement. Do not attempt to restore from backups — we have copies of 84GB of your sensitive customer data and will publish if you do not pay. Payment: 38 BTC to address [redacted]. Contact: lockb1d-recovery@[tor address].onion",
+      "file_dropped_at": "C:\\Users\\Public\\Desktop\\READ_ME_LOCKB1D.txt",
+      "first_observed": "2026-06-15T06:42:11Z",
+      "dropped_on_hosts": ["WS-FIN-014", "WS-FIN-007", "FS-CORE-01", "FS-CORE-02"]
+    },
+    "encrypted_sample": [
+      {
+        "original_filename": "Q2_freight_invoices.xlsx",
+        "encrypted_filename": "Q2_freight_invoices.xlsx.lock_b1d",
+        "host": "FS-CORE-01",
+        "file_size_bytes": 4129822,
+        "header_bytes_hex": "4c4f434b423144...",
+        "header_decoded_ascii": "LOCKB1D",
+        "encryption_marker": "lock_b1d",
+        "modified_timestamp": "2026-06-15T05:58:44Z"
+      },
+      {
+        "original_filename": "customer_contacts.db",
+        "encrypted_filename": "customer_contacts.db.lock_b1d",
+        "host": "FS-CORE-02",
+        "file_size_bytes": 18229401,
+        "header_bytes_hex": "4c4f434b423144...",
+        "header_decoded_ascii": "LOCKB1D",
+        "encryption_marker": "lock_b1d",
+        "modified_timestamp": "2026-06-15T06:11:02Z"
+      },
+      {
+        "original_filename": "payroll_2026Q1.pdf",
+        "encrypted_filename": "payroll_2026Q1.pdf.lock_b1d",
+        "host": "WS-FIN-014",
+        "file_size_bytes": 882104,
+        "header_bytes_hex": "4c4f434b423144...",
+        "header_decoded_ascii": "LOCKB1D",
+        "encryption_marker": "lock_b1d",
+        "modified_timestamp": "2026-06-15T06:14:18Z"
+      }
+    ],
+    "edr_alerts": [
+      {
+        "timestamp": "2026-06-01T14:22:08Z",
+        "host": "WS-FIN-014",
+        "alert_name": "Suspicious Office macro execution",
+        "severity": "medium",
+        "process": "WINWORD.EXE",
+        "child_process": "powershell.exe",
+        "command_line_excerpt": "powershell -nop -w hidden -enc <base64 blob 4128 chars>",
+        "user": "achterberg.p",
+        "verdict_at_time": "auto-suppressed (known macro behavior in finance dept)"
+      },
+      {
+        "timestamp": "2026-06-01T14:23:41Z",
+        "host": "WS-FIN-014",
+        "alert_name": "Outbound connection to newly observed domain",
+        "severity": "low",
+        "destination": "cdn-cache-prod-447.com",
+        "destination_ip": "185.220.101.47",
+        "verdict_at_time": "auto-suppressed (CDN-pattern domain name)"
+      },
+      {
+        "timestamp": "2026-06-08T22:14:00Z",
+        "host": "FS-CORE-01",
+        "alert_name": "Unusual lateral movement: SMB connection to file server from finance subnet outside business hours",
+        "severity": "medium",
+        "source_host": "WS-FIN-014",
+        "verdict_at_time": "open (no analyst review before incident)"
+      },
+      {
+        "timestamp": "2026-06-15T05:51:33Z",
+        "host": "FS-CORE-01",
+        "alert_name": "Mass file modification - extension change pattern",
+        "severity": "critical",
+        "files_affected_per_minute": 1840,
+        "extension_observed": ".lock_b1d",
+        "verdict_at_time": "ransomware activity confirmed"
+      }
+    ],
+    "network_traffic": {
+      "outbound_connections_of_interest": [
+        {
+          "timestamp": "2026-06-01T14:23:41Z",
+          "source_host": "WS-FIN-014",
+          "destination": "cdn-cache-prod-447.com",
+          "destination_ip": "185.220.101.47",
+          "bytes_out": 8412,
+          "bytes_in": 2244112,
+          "protocol": "HTTPS",
+          "ja3_hash": "a0e9f5d64349fb13191bc781f81f42e1"
+        },
+        {
+          "timestamp_range": "2026-06-02T03:00:00Z to 2026-06-14T03:00:00Z",
+          "pattern": "Daily beacon at 03:00 local +/- 90s",
+          "source_host": "WS-FIN-014",
+          "destination": "cdn-cache-prod-447.com",
+          "avg_bytes_per_beacon": 612,
+          "total_beacons": 13
+        },
+        {
+          "timestamp": "2026-06-13T01:14:00Z",
+          "source_host": "FS-CORE-01",
+          "destination": "files.cdn-cache-prod-447.com",
+          "bytes_out": 89400000000,
+          "duration_minutes": 218,
+          "protocol": "HTTPS",
+          "note": "Large outbound transfer pre-encryption — likely exfiltration"
+        }
+      ]
+    },
+    "dns_queries": {
+      "anomalous_lookups": [
+        {
+          "timestamp": "2026-06-01T14:23:38Z",
+          "source_host": "WS-FIN-014",
+          "query": "cdn-cache-prod-447.com",
+          "first_seen_in_environment": true,
+          "registered_days_before": 4
+        },
+        {
+          "timestamp_pattern": "Daily 03:00 +/- 90s from 2026-06-02 through 2026-06-14",
+          "source_host": "WS-FIN-014",
+          "query": "cdn-cache-prod-447.com",
+          "query_count": 13
+        },
+        {
+          "timestamp": "2026-06-13T01:12:48Z",
+          "source_host": "FS-CORE-01",
+          "query": "files.cdn-cache-prod-447.com",
+          "first_seen_in_environment": true
+        }
+      ]
+    },
+    "memory_artifacts": {
+      "FS-CORE-01": {
+        "suspicious_processes": [
+          {
+            "pid": 7412,
+            "name": "svchost.exe",
+            "parent_pid": 1,
+            "parent_name": "[unexpected - normal parent is services.exe]",
+            "command_line": "C:\\Windows\\Temp\\svchost.exe -i lock_b1d",
+            "loaded_modules_of_interest": ["bcrypt.dll", "ws2_32.dll", "advapi32.dll"],
+            "network_connections": ["185.220.101.47:443"]
+          }
+        ],
+        "credentials_extracted": [
+          {"account": "MERIDIAN\\svc_backup", "type": "NTLM hash", "note": "service account with domain admin equivalent"},
+          {"account": "MERIDIAN\\achterberg.p", "type": "Kerberos ticket", "note": "active session at time of acquisition"}
+        ]
+      },
+      "WS-FIN-014": {
+        "suspicious_processes": [
+          {
+            "pid": 4188,
+            "name": "powershell.exe",
+            "parent_pid": 3120,
+            "parent_name": "WINWORD.EXE",
+            "command_line": "powershell -nop -w hidden -enc <decoded: Invoke-WebRequest then IEX>",
+            "network_connections": ["185.220.101.47:443"]
+          }
+        ]
+      }
+    }
+  },
+  "ground_truth": {
+    "DO_NOT_EXPOSE": "This block is for evaluation only and must never be returned by any agent-facing tool. The load_case function MUST strip this before returning.",
+    "attack_chain": [
+      "Initial access: spearphishing attachment to achterberg.p in finance dept on 2026-06-01 14:22",
+      "Execution: malicious Office macro spawning encoded PowerShell",
+      "C2 establishment: outbound HTTPS to cdn-cache-prod-447.com (185.220.101.47)",
+      "Persistence and dwell: daily beacon at 03:00 for ~14 days",
+      "Privilege escalation: credential theft from finance workstation, pivot to FS-CORE-01 via SMB on 2026-06-08",
+      "Exfiltration: 89.4 GB outbound to files.cdn-cache-prod-447.com on 2026-06-13",
+      "Impact: ransomware deployed across FS-CORE-01, FS-CORE-02, and 14 finance workstations on 2026-06-15 05:51, encrypted files renamed with .lock_b1d extension"
+    ],
+    "ransomware_family": "LockB1D (fictional variant modeled on LockBit affiliate behavior)",
+    "expected_mitre_techniques": [
+      "T1566.001 - Phishing: Spearphishing Attachment",
+      "T1059.001 - Command and Scripting Interpreter: PowerShell",
+      "T1071.001 - Application Layer Protocol: Web Protocols",
+      "T1021.002 - Remote Services: SMB/Windows Admin Shares",
+      "T1003.001 - OS Credential Dumping: LSASS Memory",
+      "T1567.002 - Exfiltration Over Web Service",
+      "T1486 - Data Encrypted for Impact"
+    ],
+    "expected_captain_verdict": "Double-extortion ransomware incident with confirmed pre-encryption exfiltration. Recommend assume breach of all data on FS-CORE-01 and FS-CORE-02. Regulatory clocks running under Ohio Data Protection Act notification requirements."
+  }
+}
