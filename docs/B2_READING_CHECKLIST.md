@@ -22,3 +22,5 @@ Complete these before Wednesday viewer work. Goal: explain the project in ~60 se
 2. **Solution:** Five Band agents — Liaison talks to humans, Classifier routes evidence, Host/Network specialists analyze, Captain synthesizes with MITRE mapping.
 3. **Track 3 fit:** SHA-256 audit chain (chain of custody), structured findings, regulatory-aware reports.
 4. **Demo:** Static viewer shows completed cases; live Band room for judge interaction.
+
+See also: [WINNING_STRATEGY.md](WINNING_STRATEGY.md) for podium playbook and video script.
