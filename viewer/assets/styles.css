@@ -1,0 +1,7 @@
+/* DFIR Co-pilot viewer extras */
+.tab-active {
+  @apply text-white border-blue-400 bg-slate-800/80;
+}
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}

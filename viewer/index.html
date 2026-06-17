@@ -1,11 +1,136 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DFIR Co-pilot</title>
+  <title>DFIR Co-pilot — AI-powered digital forensics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="assets/styles.css">
 </head>
-<body>
-  <p>DFIR Co-pilot viewer — scaffold placeholder. Full landing page coming in Phase 2 (B-3).</p>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <!-- Hero -->
+  <header class="relative overflow-hidden border-b border-slate-800">
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-950/40 via-slate-950 to-slate-950"></div>
+    <div class="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
+      <p class="text-blue-400 text-sm font-medium mb-4 tracking-wide uppercase">Band of Agents Hackathon 2026 · Track 3</p>
+      <h1 class="text-4xl md:text-5xl font-bold text-white mb-6 max-w-3xl leading-tight">
+        DFIR Co-pilot
+      </h1>
+      <p class="text-xl text-slate-300 max-w-2xl mb-4">
+        AI-powered digital forensics for under-resourced cybercrime units.
+      </p>
+      <p class="text-slate-400 max-w-2xl mb-8 leading-relaxed">
+        When an office worker messages <em class="text-slate-300">"our computers are locked"</em>, five Band agents turn panic into a MITRE-mapped case file with a verified chain of custody — no event-log jargon required.
+      </p>
+      <a href="#cases" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors">
+        View demo cases ↓
+      </a>
+    </div>
+  </header>
+
+  <!-- Problem -->
+  <section class="max-w-6xl mx-auto px-4 py-12">
+    <h2 class="text-lg font-semibold text-slate-400 uppercase tracking-wide mb-4">The problem</h2>
+    <p class="text-slate-300 max-w-3xl leading-relaxed">
+      Cybercrime units with a handful of investigators face hundreds of cases a year. The bottleneck is not analysis alone — it is <strong class="text-white">evidence collection and coordination</strong>. Non-technical staff do not know what to preserve. Chain of custody breaks when intake is chaotic.
+    </p>
+  </section>
+
+  <!-- Case cards -->
+  <section id="cases" class="max-w-6xl mx-auto px-4 py-12">
+    <h2 class="text-2xl font-bold text-white mb-8">Demo cases</h2>
+    <div class="grid md:grid-cols-3 gap-6">
+      <a href="case/case_001.html" class="group block rounded-xl border border-slate-800 bg-slate-900/50 p-6 hover:border-slate-600 hover:bg-slate-900 transition-all">
+        <span class="text-xs px-2 py-1 rounded border bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-medium">LOW</span>
+        <h3 class="text-lg font-semibold text-white mt-4 group-hover:text-blue-300">Acme Ransomware</h3>
+        <p class="text-sm text-slate-500 mt-1">Acme Accounting · Calgary</p>
+        <p class="text-slate-400 text-sm mt-3">LockBit-style ransomware — clean happy path through full investigation.</p>
+      </a>
+      <a href="case/case_002.html" class="group block rounded-xl border-2 border-amber-500/40 bg-slate-900/50 p-6 hover:border-amber-400/60 hover:bg-slate-900 transition-all relative">
+        <span class="absolute -top-2 -right-2 text-xs px-2 py-0.5 rounded-full bg-amber-500 text-slate-900 font-bold">★ HERO</span>
+        <span class="text-xs px-2 py-1 rounded border bg-amber-500/20 text-amber-300 border-amber-500/30 font-medium">MEDIUM</span>
+        <h3 class="text-lg font-semibold text-white mt-4 group-hover:text-amber-300">Vector Insider Threat</h3>
+        <p class="text-sm text-slate-500 mt-1">Vector Aerospace · Mississauga</p>
+        <p class="text-slate-400 text-sm mt-3">Host says no compromise. Network says clear exfil. Captain forces correlation.</p>
+      </a>
+      <a href="case/case_003.html" class="group block rounded-xl border border-slate-800 bg-slate-900/50 p-6 hover:border-slate-600 hover:bg-slate-900 transition-all">
+        <span class="text-xs px-2 py-1 rounded border bg-red-500/20 text-red-300 border-red-500/30 font-medium">HIGH</span>
+        <h3 class="text-lg font-semibold text-white mt-4 group-hover:text-blue-300">TrueLedger Supply Chain</h3>
+        <p class="text-sm text-slate-500 mt-1">TrueLedger SaaS · Vancouver</p>
+        <p class="text-slate-400 text-sm mt-3">Captain re-scopes mid-investigation. Blast radius grows from 14 to 1,247 customers.</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- How it works — 5 agents -->
+  <section class="max-w-6xl mx-auto px-4 py-16 border-t border-slate-800">
+    <h2 class="text-2xl font-bold text-white mb-2">How it works</h2>
+    <p class="text-slate-400 mb-10 max-w-2xl">Five agents collaborate through Band — not a pipeline, an investigation room.</p>
+    <div class="relative max-w-4xl mx-auto">
+      <!-- Human -->
+      <div class="flex justify-center mb-6">
+        <div class="px-6 py-3 rounded-lg border border-slate-600 bg-slate-800 text-center">
+          <p class="text-sm font-medium text-white">Human investigator</p>
+          <p class="text-xs text-slate-500">plain language only</p>
+        </div>
+      </div>
+      <div class="flex justify-center mb-2"><div class="w-px h-6 bg-slate-600"></div></div>
+      <!-- Liaison -->
+      <div class="flex justify-center mb-6">
+        <div class="px-5 py-3 rounded-lg border border-blue-500/40 bg-blue-500/10 text-center min-w-[200px]">
+          <p class="text-sm font-medium text-blue-300">DFIR-Liaison</p>
+          <p class="text-xs text-slate-500">intake · collection · report</p>
+        </div>
+      </div>
+      <div class="flex justify-center mb-2"><div class="w-px h-6 bg-slate-600"></div></div>
+      <!-- Classifier -->
+      <div class="flex justify-center mb-6">
+        <div class="px-5 py-3 rounded-lg border border-purple-500/40 bg-purple-500/10 text-center min-w-[200px]">
+          <p class="text-sm font-medium text-purple-300">DFIR-Classifier</p>
+          <p class="text-xs text-slate-500">route evidence · brief specialists</p>
+        </div>
+      </div>
+      <!-- Specialists row -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 max-w-lg mx-auto">
+        <div class="px-5 py-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-center">
+          <p class="text-sm font-medium text-emerald-300">HostForensics</p>
+          <p class="text-xs text-slate-500">endpoints · logs · persistence</p>
+        </div>
+        <div class="px-5 py-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-center">
+          <p class="text-sm font-medium text-amber-300">NetworkForensics</p>
+          <p class="text-xs text-slate-500">traffic · DNS · exfil</p>
+        </div>
+      </div>
+      <p class="text-center text-xs text-slate-600 mb-4">↔ debate & challenge ↔</p>
+      <!-- Captain -->
+      <div class="flex justify-center mb-6">
+        <div class="px-5 py-3 rounded-lg border border-red-500/40 bg-red-500/10 text-center min-w-[200px]">
+          <p class="text-sm font-medium text-red-300">DFIR-Captain</p>
+          <p class="text-xs text-slate-500">redirect · re-scope · verdict · MITRE</p>
+        </div>
+      </div>
+      <!-- Output -->
+      <div class="flex justify-center">
+        <div class="px-6 py-3 rounded-lg border border-slate-600 bg-slate-800/80 text-center">
+          <p class="text-sm font-medium text-white">Case file + SHA-256 audit chain</p>
+          <p class="text-xs text-emerald-400">verify in browser ✓</p>
+        </div>
+      </div>
+      <p class="text-center mt-8">
+        <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-700 bg-slate-900 text-sm text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-violet-500 animate-pulse"></span>
+          Band coordinates all agent collaboration
+        </span>
+      </p>
+    </div>
+  </section>
+
+  <footer class="border-t border-slate-800 py-10">
+    <div class="max-w-6xl mx-auto px-4 flex flex-wrap justify-between items-center gap-4 text-sm text-slate-500">
+      <p>Built for Band of Agents Hackathon 2026 · Track 3</p>
+      <a href="https://github.com/AABCEH112358/dfir-copilot" class="hover:text-white transition-colors" target="_blank" rel="noopener">GitHub</a>
+      <span>Band room: TBD</span>
+    </div>
+  </footer>
 </body>
 </html>
