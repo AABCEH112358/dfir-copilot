@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -172,3 +173,57 @@ def test_append_to_case_brief_multiple_updates(tmp_path: Path) -> None:
     result = path.read_text(encoding="utf-8")
     assert result.count("## Update at ") == 2
     assert result.index(": first") < result.index(": second")
+
+
+def _seed_sealed_case(outputs_dir: Path, case_id: str) -> str:
+    """Create a minimal sealed case under outputs_dir; return the seal hash."""
+    case_dir = outputs_dir / case_id
+    (case_dir / "findings").mkdir(parents=True)
+
+    seal_hash = "d0d8bdc7seal"
+    events = [
+        {"seq": 0, "timestamp": "2026-06-18T00:00:00+00:00", "event_type": "CASE_OPENED",
+         "agent_id": "DFIR-Liaison", "payload": {}, "prev_hash": "0" * 64, "hash": "h0"},
+        {"seq": 1, "timestamp": "2026-06-18T03:30:00+00:00", "event_type": "CASE_SEALED",
+         "agent_id": "DFIR-Liaison", "payload": {"final": True}, "prev_hash": "h0",
+         "hash": seal_hash},
+    ]
+    (case_dir / "audit_chain.jsonl").write_text(
+        "\n".join(json.dumps(e) for e in events) + "\n", encoding="utf-8"
+    )
+    (case_dir / "case_brief.md").write_text("# Case Brief: T\n", encoding="utf-8")
+    (case_dir / "liaison_report.md").write_text("# Report\n", encoding="utf-8")
+    # Embed ground_truth inside the verdict and a finding to prove it is stripped.
+    (case_dir / "captain_verdict.json").write_text(
+        json.dumps({"kind": "captain_verdict", "case_id": case_id, "ground_truth": "SECRET"}),
+        encoding="utf-8",
+    )
+    (case_dir / "findings" / "f1.json").write_text(
+        json.dumps({"kind": "structured_finding", "findings": [], "ground_truth": "LEAK"}),
+        encoding="utf-8",
+    )
+    return seal_hash
+
+
+def test_build_case_file_contract_head_and_no_ground_truth(tmp_path: Path) -> None:
+    case_id = "DFIR-TEST-001"
+    seal_hash = _seed_sealed_case(tmp_path, case_id)
+
+    case_file = CB.build_case_file(case_id, outputs_dir=tmp_path)
+
+    # Structure: all 8 contract keys present.
+    contract_keys = {
+        "case_id", "opened_at", "closed_at", "case_brief_md", "all_findings",
+        "captain_verdict", "liaison_report_md", "audit_chain_path",
+    }
+    assert contract_keys <= set(case_file.keys())
+    assert case_file["case_id"] == case_id
+    assert case_file["opened_at"] == "2026-06-18T00:00:00+00:00"
+    assert case_file["closed_at"] == "2026-06-18T03:30:00+00:00"
+    assert len(case_file["all_findings"]) == 1
+
+    # audit head matches the final (CASE_SEALED) hash.
+    assert case_file["audit_chain_head"] == seal_hash
+
+    # No ground_truth anywhere in the serialized output.
+    assert "ground_truth" not in json.dumps(case_file)
