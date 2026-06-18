@@ -1,7 +1,141 @@
-/* DFIR Co-pilot viewer extras */
-.tab-active {
-  @apply text-white border-blue-400 bg-slate-800/80;
+/* DFIR Co-pilot viewer */
+
+:root {
+  --grid-color: rgb(30 41 59 / 0.45);
 }
+
+.site-header {
+  background-color: rgb(2 6 23 / 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.site-header a.nav-link {
+  color: rgb(148 163 184);
+  transition: color 0.15s ease;
+}
+.site-header a.nav-link:hover {
+  color: rgb(255 255 255);
+}
+
+
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+
+body.site-grid {
+  background-color: #020617;
+  background-image:
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.font-mono, code, .audit-hash-block {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* —— Landing —— */
+.case-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.case-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px -12px rgb(59 130 246 / 0.15);
+}
+.case-card-hero {
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 0.2), 0 12px 40px -16px rgb(245 158 11 / 0.2);
+}
+.case-card-hero:hover {
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 0.35), 0 16px 48px -12px rgb(245 158 11 / 0.25);
+}
+
+.track-pillar {
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.track-pillar:hover {
+  border-color: rgb(100 116 139 / 0.6);
+  background-color: rgb(15 23 42 / 0.8);
+}
+
+/* —— Case pages —— */
+.verdict-strip {
+  background: linear-gradient(135deg, rgb(15 23 42 / 0.9), rgb(30 41 59 / 0.5));
+  border: 1px solid rgb(51 65 85 / 0.8);
+}
+
+.audit-link-connector {
+  background: linear-gradient(90deg, rgb(71 85 105 / 0.6), rgb(59 130 246 / 0.35), rgb(71 85 105 / 0.6));
+}
+
+.audit-card:hover {
+  border-color: rgb(100 116 139 / 0.8);
+}
+
+.audit-card.debate-event {
+  border-color: rgb(245 158 11 / 0.45);
+  background: linear-gradient(135deg, rgb(245 158 11 / 0.06), rgb(15 23 42 / 0.5));
+  box-shadow: 0 0 24px -8px rgb(245 158 11 / 0.2);
+}
+
+.timeline-row.debate-event {
+  border-left: 3px solid rgb(245 158 11 / 0.7);
+  background: rgb(245 158 11 / 0.04);
+  padding-left: 0.75rem;
+  margin-left: -0.75rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.debate-pill {
+  background: rgb(245 158 11 / 0.15);
+  color: rgb(252 211 77);
+  border: 1px solid rgb(245 158 11 / 0.35);
+}
+
+.time-relative {
+  cursor: help;
+  border-bottom: 1px dotted rgb(100 116 139);
+}
+
+.tab-badge {
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+/* Loading skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgb(30 41 59) 25%, rgb(51 65 85) 50%, rgb(30 41 59) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 0.375rem;
+}
+
+nav[role="tablist"] button {
+  scroll-margin-top: 5rem;
+}
+
+nav[role="tablist"] button:focus-visible {
+  outline: 2px solid rgb(59 130 246);
+  outline-offset: 2px;
+}
+
+@media print {
+  body { background: #fff !important; color: #111 !important; background-image: none !important; }
+  .site-header nav,
+  header .flex.items-center.gap-3,
+  nav[role="tablist"], footer, .no-print, button, .copy-hash, .copy-prev, #verdict-strip { display: none !important; }
+  [data-panel].hidden { display: block !important; }
+  .print-only { display: block !important; }
+  .audit-card, .rounded-lg.border { border-color: #ccc !important; background: #f9fafb !important; break-inside: avoid; }
+  .text-slate-300, .text-slate-400, .text-slate-200, .text-white { color: #111 !important; }
+  main { max-width: 100% !important; padding: 0 !important; }
+}
+
+.print-only { display: none; }
