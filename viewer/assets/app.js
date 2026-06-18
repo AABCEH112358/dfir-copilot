@@ -58,7 +58,7 @@ function renderVerdictStrip(container, verdict, verifyResult, eventCount, debate
 }
 
 const CASE_META = {
-  '001': { name: 'Acme Ransomware', org: 'Acme Accounting', location: 'Calgary, AB', difficulty: 'low', tagline: 'LockBit-style ransomware — clean happy path', hero: false },
+  '001': { name: 'Meridian Logistics Ransomware', org: 'Meridian Logistics Inc.', location: 'Columbus, Ohio, USA', difficulty: 'low', tagline: 'LockB1D ransomware with confirmed pre-encryption exfiltration', hero: false },
   '002': { name: 'Vector Insider Threat', org: 'Vector Aerospace', location: 'Mississauga, ON', difficulty: 'medium', tagline: 'Host vs Network debate — the hero demo', hero: true },
   '003': { name: 'TrueLedger Supply Chain', org: 'TrueLedger SaaS', location: 'Vancouver, BC', difficulty: 'high', tagline: 'Captain re-scopes mid-investigation', hero: false },
 };
@@ -176,16 +176,31 @@ async function verifyAuditChain(events) {
 }
 
 function renderAuditChain(container, events, verifyResult, options = {}) {
-  const headFromVerdict = options.auditChainHead;
-  const headMatch = !headFromVerdict || !verifyResult.head || headFromVerdict.startsWith(verifyResult.head.slice(0, 8)) || verifyResult.head.startsWith(headFromVerdict.slice(0, 8));
+  const verdictEvent = events.find((e) => e.event_type === 'CAPTAIN_VERDICT');
+  const verdictSealHash = options.auditChainHead || verdictEvent?.hash || null;
+  const finalHead = verifyResult.head;
+  const showDualHead = verdictSealHash && finalHead && verdictSealHash !== finalHead;
+  const verdictVerified = verdictEvent && verdictSealHash === verdictEvent.hash;
+  const finalEvent = events.length ? events[events.length - 1] : null;
+  const finalVerified = finalEvent && finalHead === finalEvent.hash;
 
   const badge = verifyResult.ok
     ? `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-medium">Chain Verified ✓</span>`
     : `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-sm font-medium">Chain Broken at seq ${verifyResult.brokenAt} ✗</span>`;
 
-  const headNote = verifyResult.head
-    ? `<p class="text-xs text-slate-500 mt-3 font-mono">Chain head: <span class="text-slate-400">${verifyResult.head}</span>${headFromVerdict && !headMatch ? ' <span class="text-amber-400">(verdict head differs — placeholder data)</span>' : ''}</p>`
-    : '';
+  const headNote = (() => {
+    if (!finalHead) return '';
+    if (showDualHead) {
+      const verdictMark = verdictVerified ? '<span class="text-emerald-400">✓ verified at seq ' + verdictEvent.seq + '</span>' : '<span class="text-red-400">✗ mismatch</span>';
+      const finalMark = finalVerified ? '<span class="text-emerald-400">✓ verified at seq ' + finalEvent.seq + '</span>' : '<span class="text-red-400">✗ mismatch</span>';
+      return `<div class="mt-3 space-y-1 text-xs font-mono">
+        <p class="text-slate-500">Verdict sealed at: <span class="text-slate-400">${verdictSealHash}</span> ${verdictMark}</p>
+        <p class="text-slate-500">Final chain head: <span class="text-slate-400">${finalHead}</span> ${finalMark}</p>
+        <p class="text-slate-600 font-sans mt-1">The verdict hash is frozen at Captain issue time; Liaison report and case-seal events extend the chain afterward.</p>
+      </div>`;
+    }
+    return `<p class="text-xs text-slate-500 mt-3 font-mono">Chain head: <span class="text-slate-400">${finalHead}</span></p>`;
+  })();
 
   const intro = `<div class="mb-6 p-4 rounded-lg border border-slate-700/80 bg-slate-800/30 no-print">
     <p class="text-sm text-slate-300 mb-3">Tamper-evident SHA-256 hash chain. Each event links to the previous via <code class="text-xs text-blue-300">prev_hash</code>. Verified in-browser with <code class="text-xs text-blue-300">crypto.subtle</code> — not decorative.</p>
