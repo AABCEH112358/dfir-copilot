@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector Insider Threat — DFIR Co-pilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { fontFamily: { sans: ['DM Sans', 'ui-sans-serif', 'system-ui'], mono: ['JetBrains Mono', 'ui-monospace', 'monospace'] } } } }</script>
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body data-case="002" class="site-grid text-slate-100 min-h-screen">
+  <header class="site-header sticky top-0 z-50 border-b border-slate-800">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex items-center justify-between gap-4">
+      <a href="../index.html" class="text-sm font-semibold text-white hover:text-blue-300 transition-colors shrink-0">DFIR Co-pilot</a>
+      <div class="flex flex-wrap items-center justify-end gap-4 sm:gap-6">
+        <nav class="flex items-center gap-6 text-sm" aria-label="Site">
+          <a href="../index.html#cases" class="nav-link">Demo cases</a>
+          <a id="header-github-link" href="https://github.com/AABCEH112358/dfir-copilot" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+        <div class="flex items-center gap-3 border-l border-slate-800 pl-4">
+          <div id="header-chain-status"></div>
+          <button type="button" onclick="window.print()" class="no-print text-xs px-3 py-1.5 rounded border border-slate-600 text-slate-300 hover:bg-slate-800">Download PDF</button>
+          <a href="#" id="play-case" class="no-print text-xs px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white font-medium">Play case (Band)</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="print-only mb-6">
+      <h1 id="print-title" class="text-2xl font-bold"></h1>
+      <p class="text-sm text-slate-600">DFIR Co-pilot — Chain of Custody Report</p>
+    </div>
+
+    <div id="case-loading" class="space-y-4 mb-8">
+      <div class="skeleton h-6 w-32"></div>
+      <div class="skeleton h-10 w-2/3 max-w-md"></div>
+      <div class="skeleton h-4 w-48"></div>
+      <div class="skeleton h-24 w-full rounded-xl mt-6"></div>
+    </div>
+
+    <div id="case-error" class="hidden mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300">Failed to load case data.</div>
+
+    <div id="case-content" class="hidden">
+      <div class="mb-6">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+          <span id="difficulty-badge" class="text-xs px-2 py-1 rounded border font-medium">—</span>
+          <span id="hero-badge" class="hidden text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">★ Hero demo</span>
+          <span class="text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">COMPLETE</span>
+        </div>
+        <h1 id="case-title" class="text-3xl md:text-4xl font-bold text-white mb-1 tracking-tight">Loading…</h1>
+        <p id="case-org" class="text-slate-400"></p>
+        <p class="text-xs font-mono text-slate-600 mt-2"><span id="case-id"></span> · Opened <span id="case-opened"></span> · Closed <span id="case-closed"></span></p>
+      </div>
+
+      <div id="verdict-strip" class="mb-8 hidden"></div>
+
+      <nav class="flex flex-wrap gap-1 mb-6 border-b border-slate-800 pb-px sticky top-[4.25rem] z-40 bg-slate-950/95 backdrop-blur py-1 -mx-1 px-1" role="tablist">
+        <button data-tab="summary" class="px-4 py-2 text-sm rounded-t-lg text-white border-slate-700 bg-slate-800/80 border border-b-0">Summary</button>
+        <button data-tab="timeline" class="px-4 py-2 text-sm rounded-t-lg text-slate-400 border-transparent">What Happened</button>
+        <button data-tab="mitre" class="px-4 py-2 text-sm rounded-t-lg text-slate-400 border-transparent">MITRE Mapping</button>
+        <button data-tab="evidence" class="px-4 py-2 text-sm rounded-t-lg text-slate-400 border-transparent">Evidence</button>
+        <button data-tab="audit" class="px-4 py-2 text-sm rounded-t-lg text-slate-400 border-transparent">Audit Chain</button>
+        <button data-tab="actions" class="px-4 py-2 text-sm rounded-t-lg text-slate-400 border-transparent">Actions</button>
+      </nav>
+
+      <div data-panel="summary" class="prose-invert max-w-none"><div id="summary-content" class="text-slate-300 leading-relaxed"></div></div>
+      <div data-panel="timeline" class="hidden"><div id="brief-content" class="mb-6 text-slate-400 text-sm leading-relaxed"></div><div id="timeline-content"></div></div>
+      <div data-panel="mitre" class="hidden"><div id="mitre-content"></div></div>
+      <div data-panel="evidence" class="hidden"><div id="evidence-content"></div></div>
+      <div data-panel="audit" class="hidden"><div id="audit-content"></div></div>
+      <div data-panel="actions" class="hidden"><div id="actions-content"></div></div>
+    </div>
+  </main>
+
+  <footer class="border-t border-slate-800 mt-16 py-8 text-center text-slate-600 text-sm">
+    DFIR Co-pilot · Band of Agents Hackathon 2026 · Track 3
+  </footer>
+  <script src="../assets/config.js"></script>
+  <script>
+    (function () {
+      var c = window.DFIR_CONFIG;
+      if (!c || !c.githubUrl) return;
+      var gh = document.getElementById('header-github-link');
+      if (gh) gh.href = c.githubUrl;
+    })();
+  </script>
+  <script src="../assets/app.js"></script>
+  <script src="../assets/case.js"></script>
+</body>
+</html>

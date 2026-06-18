@@ -1,0 +1,12 @@
+# Placeholder Fly.io config for agent backend deployment (B-6, Thursday).
+# Final config created during `fly launch` against dfir-investigator repo.
+
+app = "dfir-copilot"
+primary_region = "sea"
+
+[build]
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

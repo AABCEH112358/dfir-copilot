@@ -2,5 +2,23 @@ venv/
 .env
 __pycache__/
 *.pyc
-data/outputs/
+*.pyo
 .pytest_cache/
+*.egg-info/
+
+# Node (if added later)
+node_modules/
+dist/
+.netlify/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Output artifacts (regenerate per run)
+data/outputs/

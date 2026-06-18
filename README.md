@@ -16,7 +16,7 @@ The audit chain is the headline feature. Open `data/outputs/{case_id}/audit_chai
 
 - No event has been edited since it was written
 - No event has been inserted or removed between any two entries
-- The verdict's `audit_chain_head` field matches the actual head of the chain — meaning the verdict can be cryptographically tied to the exact set of events the Captain reasoned over
+- The verdict's `audit_chain_head` field matches the hash of the `CAPTAIN_VERDICT` event at verdict time — meaning the verdict can be cryptographically tied to the exact set of events the Captain reasoned over
 
 This is the property a regulator, auditor, or opposing counsel asks for. It's also the property that lets the system be honest about its own limits: when the Captain refuses to rubber-stamp a claim, both the redirect AND the retraction are sealed into the chain.
 
@@ -94,6 +94,42 @@ python scripts/run_all.py
 #    @DFIR-Liaison <your message>
 ```
 
+### Running the viewer
+
+The static case viewer lives in `viewer/` — vanilla HTML/CSS/JS with Tailwind CDN, no build step. It loads completed case output from `viewer/data/case_*_output.json` and the matching `case_*_audit.jsonl`, then verifies the SHA-256 hash chain in the browser with `crypto.subtle`.
+
+The viewer must be served over HTTP (not opened as `file://`) because it uses `fetch()` to load case data.
+
+```bash
+# From the repo root — sync latest case_001 artifacts, then serve:
+./scripts/run_demo.sh
+
+# Or serve the viewer only (after copying/syncing data into viewer/data/):
+cd viewer
+python -m http.server 8080
+# Open http://localhost:8080/index.html
+```
+
+Update `viewer/assets/config.js` with your Band room URL after deployment. Case pages are at `viewer/case/case_001.html`, `case_002.html`, and `case_003.html`.
+
+### Running the unified demo
+
+`scripts/run_demo.sh` starts everything for a judge-ready session:
+
+1. Non-destructively copies `data/outputs/DFIR-2026-001/` artifacts into `viewer/data/` under the names the viewer expects
+2. Launches all five agents (`python scripts/run_all.py`) in the background
+3. Serves the viewer with `python -m http.server` (default port 8080)
+4. Prints the viewer URL and Band room URL at startup
+5. Stops agents and the HTTP server cleanly on Ctrl+C
+
+```bash
+source venv/bin/activate
+./scripts/run_demo.sh
+
+# Optional overrides:
+VIEWER_PORT=9000 BAND_ROOM_URL='https://app.band.ai/your-room' ./scripts/run_demo.sh
+```
+
 Three sample cases ship in `data/cases/`:
 
 - `case_001_ransomware.json` — LockB1D ransomware with confirmed pre-encryption data exfiltration
@@ -131,7 +167,7 @@ print("head_hash:", chain.head_hash())
 print("event_count:", len(chain.events()))
 ```
 
-The final event's hash should match the `audit_chain_head` field in `captain_verdict.json`.
+The `audit_chain_head` in `captain_verdict.json` matches the `CAPTAIN_VERDICT` event hash (verdict seal). After the Liaison drafts the report and seals the case, the final chain head advances — the viewer shows both hashes when they differ.
 
 ## Tech stack
 
@@ -140,11 +176,12 @@ The final event's hash should match the `audit_chain_head` field in `captain_ver
 - **Python 3.13**, stdlib for the audit chain (`hashlib`, `json`, `pathlib`) — zero external deps for the chain-of-custody library
 - **PyYAML** for agent configuration
 - **python-dotenv** for credential loading
+- **Vanilla HTML/CSS/JS viewer** (Tailwind CDN) — browser-side hash verification
 - **pytest** for the test suite (23+ tests covering the audit chain, evidence tools, and case-brief renderer)
 
 ## Cross-track contracts
 
-The agents on this repo collaborate with a viewer on a separate codebase via stable JSON / Markdown contracts documented in `docs/AGENT_CONTRACTS.md`:
+The agents and viewer share stable JSON / Markdown contracts documented in `docs/AGENT_CONTRACTS.md`:
 
 - `AuditChainEvent` — every event written to the chain
 - `StructuredFinding` — what specialists post
@@ -173,7 +210,10 @@ dfir-investigator/
 ├── data/
 │   ├── cases/              # the 3 case JSONs
 │   └── outputs/            # per-case investigation artifacts
-├── scripts/run_all.py      # launches all 5 agents in parallel
+├── viewer/                 # static case viewer (HTML/CSS/JS)
+├── scripts/
+│   ├── run_all.py          # launches all 5 agents in parallel
+│   └── run_demo.sh         # unified demo: agents + viewer + data sync
 ├── tests/                  # pytest suite
 ├── docs/AGENT_CONTRACTS.md # cross-track contracts (locked)
 ├── agent_config.yaml       # per-agent Band IDs + env var names
@@ -184,3 +224,7 @@ dfir-investigator/
 ## Authors and credits
 
 Built for the Band hackathon by [your team names]. Cases and agent prompts authored from scratch; Band SDK by Band Inc.; investigation domain expertise informed by public MITRE ATT&CK documentation and common DFIR practice.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
