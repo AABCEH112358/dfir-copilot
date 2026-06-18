@@ -1,0 +1,83 @@
+{
+  "case_id": "DFIR-2026-001",
+  "opened_at": "2026-06-18T14:00:00Z",
+  "closed_at": "2026-06-18T14:42:00Z",
+  "case_brief_md": "# Case Brief: DFIR-2026-001\n\n## Incident Summary\nLockBit-style ransomware across Acme Accounting workstations.\n\n## Victim Organization\nAcme Accounting \u2014 Calgary, AB \u2014 35 people",
+  "all_findings": [
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "Shadow copy deletion and encryption artifacts consistent with T1486.",
+          "evidence_refs": [
+            "server_logs/event_8842",
+            "encrypted_sample/lock_b1d"
+          ],
+          "mitre_techniques": [
+            "T1486"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": []
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "Outbound C2 beaconing to 185.220.101.47 prior to encryption.",
+          "evidence_refs": [
+            "firewall_logs/egress_0144"
+          ],
+          "mitre_techniques": [
+            "T1486",
+            "T1071.001"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": []
+    }
+  ],
+  "captain_verdict": {
+    "kind": "captain_verdict",
+    "case_id": "DFIR-2026-001",
+    "classification": "Ransomware",
+    "subtype": "LockBit-style encrypt-and-extort",
+    "threat_actor_attribution": {
+      "group": "Unknown commodity operator",
+      "confidence": "medium"
+    },
+    "initial_access_vector": "Phishing attachment",
+    "mitre_techniques": [
+      {
+        "id": "T1486",
+        "name": "Data Encrypted for Impact",
+        "evidence": "Encryption artifacts + ransom note"
+      }
+    ],
+    "immediate_actions": [
+      "Isolate affected workstations",
+      "Preserve ransom note",
+      "Notify cyber insurance within 24h"
+    ],
+    "evidence_preserved": [
+      "ransom_note",
+      "server_logs",
+      "firewall_logs"
+    ],
+    "regulatory_obligations": [
+      "PIPEDA breach assessment"
+    ],
+    "human_followup_recommended": [
+      "Engage recovery vendor"
+    ],
+    "audit_chain_head": "9f6af5bca9d30ef804d4f8dfce1aa3decd74bcd1d6a26d6ff915bd86bfe982f0"
+  },
+  "liaison_report_md": "# Summary for the Investigator\n\nAcme Accounting suffered ransomware affecting 12 workstations. Encryption consistent with LockBit-style operations.\n\n# What Happened\n\nStaff reported black screens with ransom demand. Host confirmed mass encryption; Network identified pre-encryption C2.\n\n# MITRE Mapping\n\n- **T1486** \u2014 Data Encrypted for Impact\n- **T1071.001** \u2014 Web C2 beaconing\n\n# Recommended Next Steps\n\n1. Maintain network isolation.\n2. Complete PIPEDA assessment.\n\n# Chain of Custody\n\nAll actions hash-chained.",
+  "audit_chain_path": "data/case_001_audit.jsonl"
+}
