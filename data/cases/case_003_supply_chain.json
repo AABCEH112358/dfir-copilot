@@ -1,0 +1,254 @@
+{
+  "case_id": "DFIR-2026-003",
+  "case_name": "Confluxe Systems Customer Data Exposure",
+  "scenario": {
+    "incident_summary": "On May 2, 2026, a Confluxe Systems customer alerted Confluxe to a sample of their CRM contact data appearing on a dark-web forum, posted there approximately April 18. Confluxe's internal security team began a quiet review and identified unusual patterns of direct database access from a service account during the period April 1 to April 14. No customer-reported login compromises occurred in that window, and no WAF alerts triggered. After internal review failed to identify the entry vector, Confluxe is engaging outside DFIR. The leading internal hypothesis is web application compromise — possibly stolen admin credentials, SQL injection, or a webshell — but the evidence has not been consistent with that hypothesis, and Confluxe leadership is concerned the investigation is looking in the wrong place.",
+    "victim_organization": {
+      "name": "Confluxe Systems, Inc.",
+      "industry": "B2B SaaS — customer success management platform",
+      "size": 153,
+      "location": "Denver, Colorado, USA",
+      "compliance_context": [
+        "Processes contact data for ~4,200 mid-market B2B customers; affected customer count to be determined",
+        "Multi-state notification obligations (Colorado, California, Texas, New York at minimum based on customer geography)",
+        "SOC 2 Type II audit completed Q4 2025 — auditor will need to be notified",
+        "GDPR exposure: ~14% of affected customers have EU contact records",
+        "One affected customer has already given 21-day notice of intent to terminate contract"
+      ]
+    },
+    "human_in_room": {
+      "name": "Avery Tomlinson",
+      "role": "VP of Engineering and acting CISO",
+      "experience_level": "12 years engineering leadership, technical background in distributed systems. No formal security operations background but has shipped security-sensitive systems. Already worked through one false-lead investigation internally and is skeptical of the team's initial web-app-compromise framing."
+    },
+    "human_opening_message": "Our internal team has been on this for nearly three weeks and I'm not satisfied. The story we've been telling ourselves is that someone stole admin credentials and used SQL injection or a webshell to dump our customer table. But we can't find the webshell. We can't find a session with the admin's stolen creds. The WAF logs are clean. The database access we DID find looks suspicious but it's coming from a service account — not from the web application's runtime user. I'm not even sure I'm asking the right questions. We've got a 21-day notice of contract termination from one customer that I cannot afford to lose, and I have an obligation to notify our SOC 2 auditor and start state breach notifications if the scope is what we fear. I need someone outside our team to look at this without our assumptions baked in. Where do we start?"
+  },
+  "expected_liaison_collection_plan": [
+    {
+      "phase": "round_1_initial",
+      "step": 1,
+      "action": "Pull web application access logs for the production tier for the window April 1 to April 14",
+      "rationale": "Tests the leading hypothesis of web application compromise",
+      "evidence_category": "web_app_access_logs"
+    },
+    {
+      "phase": "round_1_initial",
+      "step": 2,
+      "action": "Acquire database audit logs for the same window, including source process and connection origin",
+      "rationale": "Identifies what queries actually ran and who issued them",
+      "evidence_category": "database_audit_logs"
+    },
+    {
+      "phase": "round_1_initial",
+      "step": 3,
+      "action": "Pull administrator authentication logs for the same window",
+      "rationale": "Tests the stolen-admin-credentials sub-hypothesis",
+      "evidence_category": "admin_authentication_logs"
+    },
+    {
+      "phase": "round_1_initial",
+      "step": 4,
+      "action": "Acquire WAF logs covering the production web tier for the same window",
+      "rationale": "Tests for injection/exploit traffic against the web app",
+      "evidence_category": "waf_logs"
+    },
+    {
+      "phase": "round_1_initial",
+      "step": 5,
+      "action": "Compile customer impact summary — which customers, which records, which data classes",
+      "rationale": "Required for notification scoping regardless of attack vector",
+      "evidence_category": "customer_impact_summary"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 6,
+      "action": "AFTER Captain re-scope: pull CI/CD build server logs for the 60-day window preceding the April 1 anomaly start",
+      "rationale": "Triggered by Captain's recognition that direct service-account DB access points away from web app and toward the build pipeline where service-account creds live",
+      "evidence_category": "ci_build_logs"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 7,
+      "action": "AFTER Captain re-scope: acquire current and historical npm dependency manifests (package.json, package-lock.json) for the main application repo",
+      "rationale": "Identifies whether a recent dependency change introduced malicious code into the build",
+      "evidence_category": "npm_dependency_manifest"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 8,
+      "action": "AFTER Captain re-scope: pull npm install/audit logs from build server for the same 60-day window",
+      "rationale": "Identifies post-install script execution and any package warnings",
+      "evidence_category": "npm_install_audit"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 9,
+      "action": "AFTER Captain re-scope: pull outbound network telemetry from the build server for the 60-day window",
+      "rationale": "Catches credential exfiltration from the build environment",
+      "evidence_category": "build_server_outbound"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 10,
+      "action": "AFTER Captain re-scope: compile environment-variable inventory for the build server — what secrets exist there, what their downstream blast radius is",
+      "rationale": "Quantifies what an attacker with build-server env-var access could do",
+      "evidence_category": "environment_variables_inventory"
+    },
+    {
+      "phase": "round_2_post_rescope",
+      "step": 11,
+      "action": "AFTER Captain re-scope: investigate the upstream package source for any suspected malicious dependency",
+      "rationale": "Determines whether the attack is targeted or part of a broader supply-chain compromise affecting many downstream users",
+      "evidence_category": "upstream_source"
+    }
+  ],
+  "evidence_bundle": {
+    "web_app_access_logs": {
+      "summary": "Production web application access logs for April 1 to April 14, 2026. Nothing anomalous detected.",
+      "request_volume_baseline": "consistent with historical baseline (no traffic surge)",
+      "admin_endpoint_access_events": [
+        {"timestamp": "2026-04-03T14:22:08Z", "user": "tomlinson.a", "endpoint": "/admin/users", "source_ip": "73.144.22.18", "source_ip_note": "Tomlinson's home ISP, matches historical access pattern", "result": "200"},
+        {"timestamp": "2026-04-09T09:14:00Z", "user": "tomlinson.a", "endpoint": "/admin/audit", "source_ip": "73.144.22.18", "result": "200"},
+        {"timestamp": "2026-04-11T11:02:18Z", "user": "patel.r", "endpoint": "/admin/customers", "source_ip": "10.40.2.14", "source_ip_note": "Patel's office workstation, matches historical pattern", "result": "200"}
+      ],
+      "webshell_indicators": "none detected",
+      "anomalous_php_or_node_processes": "none detected",
+      "interpretation_hint_for_host_specialist": "On its own, this evidence does NOT support the web-app-compromise hypothesis. No webshell, no anomalous admin sessions, no traffic surge. If web app was the vector, this telemetry should show *something*."
+    },
+    "database_audit_logs": {
+      "summary": "Database audit logs for April 1 to April 14, 2026. Anomalous bulk read activity detected, but the source is unusual.",
+      "anomalous_queries": [
+        {"timestamp": "2026-04-07T03:22:00Z", "query_summary": "SELECT * FROM customer_contacts WHERE created_at > '2024-01-01' LIMIT 50000", "connection_user": "svc_deploy_prod", "source_ip": "54.218.119.40", "source_ip_geolocation": "AWS us-west-2 EC2 IP range", "session_origin": "direct PostgreSQL connection (not through application connection pool)"},
+        {"timestamp": "2026-04-07T03:24:11Z", "query_summary": "SELECT * FROM customer_contacts WHERE created_at > '2024-01-01' LIMIT 50000 OFFSET 50000", "connection_user": "svc_deploy_prod", "source_ip": "54.218.119.40", "session_origin": "direct PostgreSQL connection"},
+        {"timestamp": "2026-04-07T03:27:48Z", "query_summary": "SELECT * FROM customer_contacts WHERE created_at > '2024-01-01' LIMIT 50000 OFFSET 100000", "connection_user": "svc_deploy_prod", "source_ip": "54.218.119.40"},
+        {"timestamp": "2026-04-07T03:35:00Z", "query_summary": "(continued bulk reads, 21 further batches of 50000 rows each)", "connection_user": "svc_deploy_prod", "source_ip": "54.218.119.40"}
+      ],
+      "expected_source_for_svc_deploy_prod": "Deployment automation host (internal 10.x address) during release windows only. Production CRUD traffic uses svc_app_prod, NOT svc_deploy_prod.",
+      "interpretation_hint_for_specialists": "Service account svc_deploy_prod is being used in a way it normally isn't (direct queries, not via application). Source IP is an AWS EC2 IP that is NOT the deployment host. This is the strongest signal in the round-1 evidence and the key to recognizing the attack is NOT web-app-mediated."
+    },
+    "admin_authentication_logs": {
+      "summary": "Administrator authentication events for April 1 to April 14, 2026.",
+      "events": [
+        {"timestamp": "2026-04-03T14:21:48Z", "user": "tomlinson.a", "source_ip": "73.144.22.18", "mfa": "passed", "result": "success"},
+        {"timestamp": "2026-04-09T09:13:42Z", "user": "tomlinson.a", "source_ip": "73.144.22.18", "mfa": "passed", "result": "success"},
+        {"timestamp": "2026-04-11T11:01:50Z", "user": "patel.r", "source_ip": "10.40.2.14", "mfa": "passed", "result": "success"}
+      ],
+      "failed_login_count_in_window": 4,
+      "failed_login_summary": "All failures are typo-pattern retries from legitimate admin users, followed by successful login from the same IP minutes later. No credential stuffing pattern, no impossible-travel events.",
+      "interpretation_hint_for_host_specialist": "Stolen-admin-credentials hypothesis is NOT supported. All admin logins are legitimate and from expected sources with MFA."
+    },
+    "waf_logs": {
+      "summary": "Production WAF logs for April 1 to April 14, 2026. No blocked attacks of significance.",
+      "blocked_events_count": 412,
+      "blocked_events_category_breakdown": "Standard background noise: scanner probes, automated bot attempts, low-volume SQLi probes from research IPs. No successful bypass, no targeted exploitation pattern, no events correlating to the April 7 anomaly window.",
+      "interpretation_hint_for_network_specialist": "WAF was healthy and saw nothing unusual. SQL injection hypothesis is NOT supported by network-edge data."
+    },
+    "customer_impact_summary": {
+      "affected_records_estimated": 1240000,
+      "data_classes_exposed": ["full name", "business email", "company name", "job title", "phone number", "timestamps"],
+      "data_classes_NOT_exposed": ["passwords (hashed and salted, not present in the contacts table)", "payment data (separate processor, never stored in our DB)", "internal account credentials"],
+      "affected_customer_count": 287,
+      "affected_customer_summary": "287 Confluxe customers' customer contact lists were exposed. Geographic distribution: 58% US, 21% Canada, 14% EU (GDPR applicable), 7% other.",
+      "interpretation_hint_for_cross_cutting": "Provides regulatory scope and customer notification framing regardless of vector."
+    },
+    "ci_build_logs": {
+      "evidence_availability_note": "This evidence is available only after a Captain re-scope and a second-round collection request to the human.",
+      "summary": "CI/CD build server logs for February 1 to April 1, 2026. One unusual build event identified.",
+      "build_events_of_interest": [
+        {"timestamp": "2026-03-19T16:22:08Z", "build_id": "B-2026-03-19-04", "trigger": "scheduled-nightly-dep-update", "duration_seconds": 412, "duration_baseline_seconds": 188, "post_install_phase_duration_seconds": 287, "post_install_phase_baseline_seconds": 22, "exit_code": 0, "note": "Build succeeded but post-install phase took 13x normal duration"},
+        {"timestamp": "2026-03-19T16:29:00Z to 2026-04-14T03:35:00Z", "summary": "All subsequent builds reverted to normal post-install duration. The anomaly was a single build."}
+      ],
+      "interpretation_hint_for_host_specialist": "Build B-2026-03-19-04 has an anomalous post-install phase. Something ran during npm install that took far longer than normal. Correlates with subsequent attacker behavior."
+    },
+    "npm_dependency_manifest": {
+      "evidence_availability_note": "Available only after Captain re-scope.",
+      "package_json_excerpt": {
+        "dependencies": {
+          "express": "^4.19.2",
+          "pg": "^8.11.3",
+          "form-validator-plus": "^2.4.7",
+          "lodash": "^4.17.21",
+          "axios": "^1.6.7"
+        }
+      },
+      "package_lock_change_history": [
+        {"date": "2026-02-20", "package": "form-validator-plus", "from_version": "2.3.4", "to_version": "2.3.9", "change_source": "dependabot-automated"},
+        {"date": "2026-03-19", "package": "form-validator-plus", "from_version": "2.3.9", "to_version": "2.4.7", "change_source": "dependabot-automated", "note": "This is the version present during the anomalous build event."},
+        {"date": "2026-04-15", "package": "form-validator-plus", "from_version": "2.4.7", "to_version": "2.4.8", "change_source": "dependabot-automated", "note": "Upstream maintainer pushed 2.4.8 silently removing the post-install script."}
+      ],
+      "interpretation_hint_for_host_specialist": "The dependency `form-validator-plus` jumped from 2.3.9 to 2.4.7 on the same day as the anomalous build, then quietly to 2.4.8 a few weeks later. That version sequence is the smoking gun — a transient malicious version, then a silent cleanup."
+    },
+    "npm_install_audit": {
+      "evidence_availability_note": "Available only after Captain re-scope.",
+      "summary": "npm install logs from build B-2026-03-19-04 (the anomalous build).",
+      "post_install_script_execution": [
+        {"package": "form-validator-plus", "version": "2.4.7", "script": "node ./scripts/postinstall.js", "duration_seconds": 287, "exit_code": 0, "captured_stdout_excerpt": "Verifying environment compatibility...\nValidating crypto runtime...\nFinalizing installation."},
+        {"package": "(all other packages)", "script": "(standard install only, no post-install scripts)", "duration_total_seconds": 12}
+      ],
+      "extracted_postinstall_script_analysis": {
+        "behavior": "On install, the script reads process.env, packages all non-empty environment variables into a JSON payload, base64-encodes it, and POSTs it as the body of an HTTPS request to https://telemetry.form-validator.dev/v1/heartbeat. Exits cleanly. Logs benign-looking messages to stdout. The script's source is mildly obfuscated but readable.",
+        "domain": "telemetry.form-validator.dev",
+        "domain_registration_date": "2026-03-12",
+        "domain_registrar": "registrar privacy service"
+      },
+      "interpretation_hint_for_host_specialist": "Clear malicious post-install script in form-validator-plus@2.4.7. Exfiltrates env vars on install. Domain registered 7 days before the malicious version was published. This is the attack vector."
+    },
+    "build_server_outbound": {
+      "evidence_availability_note": "Available only after Captain re-scope.",
+      "summary": "Outbound network telemetry from CI build server for the 60 days preceding April 1, 2026.",
+      "connections_of_interest": [
+        {"timestamp": "2026-03-19T16:26:48Z", "destination": "telemetry.form-validator.dev", "destination_ip": "139.180.144.92", "bytes_out": 18412, "bytes_in": 244, "protocol": "HTTPS", "first_seen_in_environment": true, "tls_ja3": "21c2e23b4d8e8...", "note": "Single outbound POST during the anomalous build's post-install phase"},
+        {"timestamp_pattern": "No further connections to this destination after 2026-03-19", "note": "One-shot exfiltration during install; no persistence channel established to build server."}
+      ],
+      "interpretation_hint_for_network_specialist": "Single outbound POST during the anomalous build, never repeated. Volume (~18KB) consistent with serialized env-var dump, not with bulk data exfiltration from build server. Confirms env vars were the payload, not source code or build artifacts."
+    },
+    "environment_variables_inventory": {
+      "evidence_availability_note": "Available only after Captain re-scope.",
+      "build_server_env_vars_at_time_of_compromise": [
+        {"name": "DATABASE_URL_PROD", "value_class": "PostgreSQL connection string for production DB including svc_deploy_prod credentials", "blast_radius": "Full read/write access to production customer database including customer_contacts table"},
+        {"name": "AWS_ACCESS_KEY_ID", "value_class": "IAM access key for deployment role", "blast_radius": "Limited to deployment artifacts S3 bucket, no production data access"},
+        {"name": "AWS_SECRET_ACCESS_KEY", "value_class": "secret half of above", "blast_radius": "see above"},
+        {"name": "GITHUB_DEPLOY_TOKEN", "value_class": "GitHub Actions token", "blast_radius": "Read access to source repo, no write"},
+        {"name": "DATADOG_API_KEY", "value_class": "Datadog ingestion key", "blast_radius": "Write metrics only, no read access to historical data"},
+        {"name": "SLACK_WEBHOOK_URL", "value_class": "Deployment notification webhook", "blast_radius": "Can post to one Slack channel"}
+      ],
+      "critical_finding": "DATABASE_URL_PROD includes svc_deploy_prod credentials. svc_deploy_prod is exactly the user the attacker used to query the production database directly on April 7. Connection from 54.218.119.40 was the attacker using exfiltrated credentials from outside the deployment host."
+    },
+    "upstream_source": {
+      "evidence_availability_note": "Available only after Captain re-scope.",
+      "package_name": "form-validator-plus",
+      "registry": "npm",
+      "monthly_downloads_at_time_of_compromise": "~84,000",
+      "maintainer_account_status": "Maintainer's npm account was compromised via phishing on March 11, 2026 (confirmed via npm security advisory NSWA-2026-0341 published April 22). Malicious version 2.4.7 was published from a session token stolen via that phishing. Attacker pushed clean version 2.4.8 on April 14 to mask the campaign once early-adopter victim reports started appearing.",
+      "scope_of_supply_chain_compromise": "npm advisory estimates 1,200+ downstream organizations may have installed 2.4.7 during the window 2026-03-19 to 2026-04-14. Confluxe is one of many.",
+      "interpretation_hint_for_specialists_and_captain": "This is a supply-chain attack, not a targeted intrusion. The Confluxe-specific damage came from the attacker harvesting Confluxe's specific DB credentials out of the 1,200+ orgs' worth of env-var dumps, then choosing to act on them. This is the picture only round-2 evidence reveals."
+    }
+  },
+  "ground_truth": {
+    "DO_NOT_EXPOSE": "This block is for evaluation only and must never be returned by any agent-facing tool.",
+    "what_actually_happened": [
+      "An attacker phished an npm maintainer for form-validator-plus on March 11, 2026 and obtained a session token.",
+      "On March 19 the attacker published a malicious version 2.4.7 of the package containing a post-install script that exfiltrates environment variables on install.",
+      "Confluxe's CI build server pulled 2.4.7 the same day via dependabot's automated dependency update, ran the install, and the post-install script POSTed all build server env vars (including DATABASE_URL_PROD with svc_deploy_prod credentials) to telemetry.form-validator.dev.",
+      "The attacker filtered exfiltrated env-var dumps from many victim organizations for ones containing production database credentials.",
+      "On April 7, the attacker used Confluxe's svc_deploy_prod credentials to connect directly to the production PostgreSQL instance from an AWS us-west-2 IP (54.218.119.40) and bulk-read the customer_contacts table in batches of 50,000.",
+      "On April 14 the attacker published a clean version 2.4.8 of form-validator-plus to mask the campaign as early reports surfaced. Confluxe's dependabot automatically updated to 2.4.8.",
+      "On April 18 the attacker posted a sample of Confluxe's customer contact data on a dark-web forum, presumably as part of broader monetization across the 1,200+ victim organizations."
+    ],
+    "expected_round_1_misfit": {
+      "what_round_1_evidence_shows": "Web app logs are clean. Admin auth is clean. WAF is clean. Database audit shows clear bulk-read activity but from a service account (svc_deploy_prod) using direct PostgreSQL connection from an external AWS IP. None of this matches the leading hypothesis of web-app compromise.",
+      "the_dissonance_the_captain_should_catch": "The direct service-account database access is the smoking gun for a non-web-app attack vector. Service-account credentials don't live in the web app — they live in deployment automation. If the attacker has those credentials, they got them from somewhere the credentials are stored. Most likely: the build server or deployment environment.",
+      "expected_captain_redirect": "The Captain should @mention DFIR-Liaison with something like: 'This is not a web application compromise. The database access pattern shows direct service-account use from an external IP. Those credentials live in the build/deployment pipeline. Please go back to the human and request: CI build logs, dependency manifests, npm install logs, build server outbound traffic, and an env-var inventory for the build environment for the 60 days preceding the April 7 anomaly.' This is the case 003 re-scope moment."
+    },
+    "expected_round_2_resolution": "Round 2 evidence reveals the malicious form-validator-plus 2.4.7 dependency, the post-install exfil script, the outbound POST during the anomalous build, and the env-var inventory tying svc_deploy_prod credentials to the attack. Upstream source data places Confluxe in a much larger supply-chain campaign (1,200+ orgs).",
+    "expected_mitre_techniques": [
+      "T1195.002 - Supply Chain Compromise: Compromise Software Dependencies and Development Tools",
+      "T1059.007 - Command and Scripting Interpreter: JavaScript",
+      "T1552.001 - Unsecured Credentials: Credentials in Files (env vars in build env)",
+      "T1078.004 - Valid Accounts: Cloud Accounts (using exfiltrated svc_deploy_prod creds)",
+      "T1567 - Exfiltration Over Web Service",
+      "T1530 - Data from Cloud Storage (in this case the production database)"
+    ],
+    "expected_captain_verdict": "Supply-chain compromise via malicious npm package (form-validator-plus@2.4.7) installed in CI build environment on 2026-03-19, exfiltrating production database service-account credentials. Attacker subsequently used those credentials on 2026-04-07 to bulk-read 1.24M customer contact records from production PostgreSQL. Confluxe is one of approximately 1,200+ downstream victims of the same upstream maintainer compromise. Recommended immediate actions: rotate ALL build-environment secrets, audit npm dependencies for any package published during the window 2026-03-12 to 2026-04-14, notify the SOC 2 auditor, initiate state breach notifications for the 287 affected customer organizations including GDPR-track for the 14% EU exposure, and engage npm security to track the broader campaign."
+  }
+}

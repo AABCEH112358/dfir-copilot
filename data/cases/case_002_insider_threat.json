@@ -1,0 +1,216 @@
+{
+  "case_id": "DFIR-2026-002",
+  "case_name": "BioGenix Suspected Insider Data Theft",
+  "scenario": {
+    "incident_summary": "On June 10, 2026, Dr. Lena Voss, Principal Scientist in R&D at BioGenix Therapeutics, completed her last day after giving four weeks' notice on May 13, 2026. She has announced she is joining Helion Biopharma, a direct competitor in the same therapeutic area (oncology immunomodulators). BioGenix leadership has reason to believe Voss may have taken proprietary research with her — including patent application drafts, preclinical assay data, and vendor contract terms — but has no concrete evidence. They are engaging a DFIR firm to investigate her digital activity over the four-week notice period (May 13 to June 10) before her workstation is wiped for reassignment. The investigation is time-sensitive: BioGenix has 14 days to file a trade secrets misappropriation claim under Massachusetts state law before the standard investigative-delay defense becomes available to the opposing party.",
+    "victim_organization": {
+      "name": "BioGenix Therapeutics, Inc.",
+      "industry": "Pre-clinical stage biotech (oncology immunomodulators)",
+      "size": 247,
+      "location": "Cambridge, Massachusetts, USA",
+      "compliance_context": [
+        "Defend Trade Secrets Act (DTSA) federal cause of action available if exfil is proven",
+        "Massachusetts Uniform Trade Secrets Act (MUTSA) — 14-day pre-suit investigation window",
+        "Pending Series C diligence — investor disclosure obligation if material IP loss is confirmed",
+        "Voss's employment contract includes a 12-month non-compete and broad IP assignment clause"
+      ]
+    },
+    "human_in_room": {
+      "name": "Dr. Marcus Chen",
+      "role": "Co-founder and CEO of BioGenix",
+      "experience_level": "Scientific founder, PhD in molecular biology, limited technical/security background. Has prior experience with one cyber incident (a phishing-driven wire fraud attempt 18 months ago) but no familiarity with forensic investigation. He is anxious but composed, and is being advised by outside counsel."
+    },
+    "human_opening_message": "I need to be careful how I phrase this. Lena Voss left us last Friday after four weeks of notice. She's joining Helion — they're our direct competitor on the IL-23 program. Three things made me call you. One: in her last two weeks she stopped attending the Tuesday research meeting, which she has chaired for two years. Two: her badge logs show she was in the building until 11pm or later most weeknights of those last two weeks, which is wildly unlike her — she normally leaves at 6. Three: our IT manager mentioned in passing that her workstation 'had a lot of cloud sync traffic' before she left, though he couldn't tell me what was being synced. My counsel says we have 14 days under Massachusetts law to file if she took anything, and after that the window for emergency relief closes. I don't want to wrongly accuse her — she's been here six years and her work has been excellent. But I need to know what she actually did in those last four weeks. What can you find out?"
+  },
+  "expected_liaison_collection_plan": [
+    {
+      "step": 1,
+      "action": "Acquire workstation file access logs for VOSS-WS-12 for the window May 13 to June 10, 2026",
+      "rationale": "Establishes what files were read, modified, or copied on the host during the notice period",
+      "evidence_category": "workstation_access_logs"
+    },
+    {
+      "step": 2,
+      "action": "Pull USB device connection history for VOSS-WS-12 for the same window",
+      "rationale": "Most insider exfiltration historically uses removable media; absence is informative",
+      "evidence_category": "usb_device_history"
+    },
+    {
+      "step": 3,
+      "action": "Acquire print server logs filtered by Voss's user account for the same window",
+      "rationale": "Hardcopy exfiltration is a known channel; print volume vs. baseline reveals patterns",
+      "evidence_category": "print_logs"
+    },
+    {
+      "step": 4,
+      "action": "Pull email metadata (sender, recipient, subject, attachment names and sizes — NOT message bodies) for Voss's account for the same window",
+      "rationale": "Email-based exfiltration would surface here without invading attorney-client privileged content",
+      "evidence_category": "email_metadata"
+    },
+    {
+      "step": 5,
+      "action": "Acquire egress proxy logs and cloud upload telemetry for VOSS-WS-12 for the same window",
+      "rationale": "Cloud-based exfiltration (personal Drive/Dropbox/iCloud) is the most common modern channel",
+      "evidence_category": "cloud_egress_logs"
+    },
+    {
+      "step": 6,
+      "action": "Pull DNS query logs from internal resolvers for VOSS-WS-12 for the same window",
+      "rationale": "Identifies cloud destinations and unusual lookups; corroborates proxy data",
+      "evidence_category": "dns_queries"
+    },
+    {
+      "step": 7,
+      "action": "Acquire VPN session records for Voss's account for the same window",
+      "rationale": "Establishes whether remote access was used and from where",
+      "evidence_category": "vpn_session_logs"
+    },
+    {
+      "step": 8,
+      "action": "Acquire a memory image and PowerShell/shell history from VOSS-WS-12 before reassignment wipe",
+      "rationale": "Scripted exfiltration leaves traces in memory and shell history that disk-based logs miss",
+      "evidence_category": "memory_artifacts"
+    },
+    {
+      "step": 9,
+      "action": "Pull HR records — resignation timeline, notice period communications, exit-interview notes, and any documented changes in behavior",
+      "rationale": "Provides timeline context and corroborates or contradicts technical findings",
+      "evidence_category": "hr_records"
+    }
+  ],
+  "evidence_bundle": {
+    "workstation_access_logs": {
+      "host": "VOSS-WS-12",
+      "user": "BIOGENIX\\lvoss",
+      "window": "2026-05-13 to 2026-06-10",
+      "summary": "File access patterns during notice period are within normal range for Voss's role. No mass read events, no anomalous copy-burst patterns, no access to files outside her project scope.",
+      "files_accessed_per_day_avg": 84,
+      "files_accessed_per_day_baseline": 91,
+      "after_hours_access_events": [
+        {"date": "2026-05-28", "time_range": "22:14 - 23:51", "files_count": 47, "note": "Mostly her own working drafts of patent applications"},
+        {"date": "2026-05-29", "time_range": "22:08 - 23:33", "files_count": 39, "note": "Mostly her own working drafts plus assay raw data for compounds BGX-119, BGX-122, BGX-141"},
+        {"date": "2026-06-02", "time_range": "21:50 - 00:14", "files_count": 61, "note": "Patent drafts and vendor agreement PDFs"},
+        {"date": "2026-06-04", "time_range": "22:30 - 23:45", "files_count": 28, "note": "Compounds BGX-119, BGX-122, BGX-141 raw data; vendor contract files"},
+        {"date": "2026-06-06", "time_range": "23:00 - 01:22", "files_count": 54, "note": "Patent application drafts, IP filing checklists"}
+      ],
+      "file_modification_events": "Within normal range. No unusual write patterns to external paths.",
+      "interpretation_hint_for_host_specialist": "On its own, this evidence is ambiguous. File access pattern is roughly normal in count. After-hours sessions show concentration on patent drafts, assay data, and vendor contracts — consistent with someone trying to wrap things up before departure, OR consistent with someone reviewing what to take. Without correlating network-side egress data, host-only conclusion would be: 'no on-host exfiltration evidence; behavior unusual but not conclusively malicious.'"
+    },
+    "usb_device_history": {
+      "host": "VOSS-WS-12",
+      "window": "2026-05-13 to 2026-06-10",
+      "devices_connected": [],
+      "summary": "No USB mass storage devices connected to this workstation during the notice period. Last USB connection recorded: 2026-02-14 (Logitech wireless presenter dongle, still connected).",
+      "interpretation_hint_for_host_specialist": "Strong evidence that physical USB exfiltration did not occur."
+    },
+    "print_logs": {
+      "host": "BIOGENIX-PRINT-01",
+      "user": "BIOGENIX\\lvoss",
+      "window": "2026-05-13 to 2026-06-10",
+      "pages_printed_total": 218,
+      "pages_printed_baseline_4_weeks": 47,
+      "documents": [
+        {"date": "2026-05-21", "document_name": "Project_BGX119_handoff_notes.docx", "pages": 12},
+        {"date": "2026-05-23", "document_name": "Q2_team_roadmap_v3.docx", "pages": 8},
+        {"date": "2026-06-02", "document_name": "vendor_contact_list.xlsx", "pages": 4},
+        {"date": "2026-06-05", "document_name": "OFFBOARDING_checklist_HR.pdf", "pages": 6},
+        {"date": "2026-06-08", "document_name": "Project_handoff_summary_final.docx", "pages": 32}
+      ],
+      "interpretation_hint_for_host_specialist": "Print volume ~5x baseline but content is overtly handoff-related. Plausibly legitimate."
+    },
+    "email_metadata": {
+      "user": "BIOGENIX\\lvoss",
+      "window": "2026-05-13 to 2026-06-10",
+      "emails_sent_total": 142,
+      "emails_sent_baseline_4_weeks": 168,
+      "external_recipients_summary": "Primarily standard professional contacts: 11 outside collaborators on existing program (consistent), 2 patent attorneys at Sutton & Crane (her usual IP counsel), 1 academic collaborator at Harvard. No unusual personal-domain recipients in sent-mail metadata.",
+      "attachments_outgoing": [
+        {"date_range": "2026-05-13 to 2026-06-10", "attachment_count": 23, "largest_attachment_mb": 4.2, "note": "All attachments to external recipients are <5MB. Sizes consistent with text documents and figures, not bulk data."}
+      ],
+      "interpretation_hint_for_specialists": "Email is not the exfiltration channel. Cross-cutting evidence — both specialists may review."
+    },
+    "cloud_egress_logs": {
+      "host": "VOSS-WS-12",
+      "window": "2026-05-13 to 2026-06-10",
+      "summary": "Anomalous personal cloud upload activity. Total ~13.4 GB egressed to personal Google Drive account associated with lena.voss.research@gmail.com (not a BioGenix-managed identity).",
+      "upload_sessions": [
+        {"date": "2026-05-28", "time_range": "22:30 - 23:48", "destination": "drive.google.com", "account_identifier_in_traffic": "lena.voss.research@gmail.com", "bytes_out": 1820000000, "session_note": "Single large encrypted archive upload"},
+        {"date": "2026-05-29", "time_range": "22:14 - 23:30", "destination": "drive.google.com", "account_identifier_in_traffic": "lena.voss.research@gmail.com", "bytes_out": 2140000000, "session_note": "Single large encrypted archive upload"},
+        {"date": "2026-06-02", "time_range": "21:55 - 00:12", "destination": "drive.google.com", "account_identifier_in_traffic": "lena.voss.research@gmail.com", "bytes_out": 3680000000, "session_note": "Two encrypted archives uploaded"},
+        {"date": "2026-06-04", "time_range": "22:35 - 23:48", "destination": "drive.google.com", "account_identifier_in_traffic": "lena.voss.research@gmail.com", "bytes_out": 1920000000, "session_note": "Single large encrypted archive upload"},
+        {"date": "2026-06-06", "time_range": "23:05 - 01:18", "destination": "drive.google.com", "account_identifier_in_traffic": "lena.voss.research@gmail.com", "bytes_out": 3840000000, "session_note": "Two encrypted archives uploaded"}
+      ],
+      "interpretation_hint_for_network_specialist": "Strong evidence of cloud-based exfiltration to a personal Google Drive account. Volume (~13.4 GB), timing (after-hours), and destination (personal account, not corporate-managed) match an exfiltration pattern. However: network logs do not reveal WHAT was uploaded — only that encrypted archives were sent."
+    },
+    "dns_queries": {
+      "host": "VOSS-WS-12",
+      "window": "2026-05-13 to 2026-06-10",
+      "queries_of_interest": [
+        {"timestamp_pattern": "2026-05-28, 2026-05-29, 2026-06-02, 2026-06-04, 2026-06-06 during late-night sessions", "query": "drive.google.com", "first_seen_in_environment": false, "note": "Domain is allowed by policy; queries themselves not anomalous"},
+        {"timestamp_pattern": "Same dates as above", "query": "accounts.google.com", "note": "Authentication to non-corporate Google account"}
+      ],
+      "interpretation_hint_for_network_specialist": "Corroborates the proxy logs. The destination is Google Drive but the account is personal."
+    },
+    "vpn_session_logs": {
+      "user": "BIOGENIX\\lvoss",
+      "window": "2026-05-13 to 2026-06-10",
+      "sessions": "VPN was NOT used during the notice period. All anomalous activity originated from inside the BioGenix corporate network, from VOSS-WS-12 in the R&D wing.",
+      "interpretation_hint_for_network_specialist": "Eliminates remote-access vector. Activity was on-prem and after-hours."
+    },
+    "memory_artifacts": {
+      "host": "VOSS-WS-12",
+      "acquisition_date": "2026-06-11 (post-departure, pre-wipe)",
+      "powershell_history_excerpt": [
+        {"timestamp": "2026-05-28T22:18:00Z", "command": "Get-ChildItem -Path 'Z:\\R&D\\IP_drafts','Z:\\R&D\\Assay_raw\\BGX-119','Z:\\R&D\\Assay_raw\\BGX-122','Z:\\R&D\\Assay_raw\\BGX-141','Z:\\R&D\\Vendor_contracts' -Recurse -File"},
+        {"timestamp": "2026-05-28T22:20:11Z", "command": "Compress-Archive -Path $files -DestinationPath C:\\Users\\lvoss\\AppData\\Local\\Temp\\stage_001.zip"},
+        {"timestamp": "2026-05-28T22:24:50Z", "command": "& 'C:\\Program Files\\7-Zip\\7z.exe' a -p<REDACTED_PASSWORD> -mhe=on stage_001.7z stage_001.zip"},
+        {"timestamp": "2026-05-28T22:30:08Z", "command": "# upload via browser to personal Drive — manual"},
+        {"timestamp": "2026-05-29T22:14:00Z", "command": "# repeat from yesterday: IP_drafts/, BGX-119/122/141 raw, vendor_contracts/, plus this week's new BGX-119 spectro runs"},
+        {"timestamp": "2026-06-02T21:55:00Z", "command": "Get-ChildItem -Path 'Z:\\R&D\\IP_drafts','Z:\\R&D\\Patent_filings_2026','Z:\\R&D\\Vendor_contracts','Z:\\R&D\\CRO_data_packages' -Recurse -File | Compress-Archive -DestinationPath C:\\Users\\lvoss\\AppData\\Local\\Temp\\stage_003.zip"},
+        {"timestamp": "2026-06-06T23:05:00Z", "command": "Remove-Item C:\\Users\\lvoss\\AppData\\Local\\Temp\\stage_*.zip,C:\\Users\\lvoss\\AppData\\Local\\Temp\\stage_*.7z -Force"}
+      ],
+      "temp_directory_state_at_acquisition": "Empty — all stage_*.zip and stage_*.7z files were deleted in the final session on 2026-06-06.",
+      "interpretation_hint_for_host_specialist": "This is the missing piece. PowerShell history reveals a scripted staging pattern: enumerate specific R&D directories (IP drafts, assay raw data for three specific lead compounds, vendor contracts), compress into ZIP, then re-archive with 7-Zip using a password and header encryption (-mhe=on), then manual upload. The staging files were deleted at the end. This explains why file access logs look 'normal-ish' — Voss did not bulk-read individual files, she scripted directory enumeration and compression in one pass. The host-side fingerprint is in shell history, not in file-access telemetry."
+    },
+    "hr_records": {
+      "resignation_date": "2026-05-13",
+      "last_day": "2026-06-10",
+      "notice_period_weeks": 4,
+      "stated_destination": "Helion Biopharma (direct competitor, oncology immunomodulators)",
+      "exit_interview_notes": "Voss declined a formal exit interview. Brief informal conversation with HR director: she stated the move was 'about scientific direction' and 'an opportunity she couldn't pass up.' Confirmed she had returned her laptop and badge. Acknowledged her non-compete in writing.",
+      "documented_behavior_changes_during_notice_period": [
+        "Stopped attending the weekly R&D leadership meeting from 2026-05-20 onward (had chaired for 2 years).",
+        "Began arriving later and staying significantly later, with security badge logs showing 22:00 - 01:00 exits on five weeknights between 2026-05-28 and 2026-06-06.",
+        "Cancelled three pre-scheduled vendor calls in final two weeks, citing handoff prep."
+      ],
+      "non_compete_summary": "12-month non-compete covering oncology immunomodulators. IP assignment clause covering all work product including derivative compounds, methods, and assay protocols developed during employment.",
+      "interpretation_hint_for_cross_cutting": "Provides timeline anchor and corroborates the after-hours activity windows shown in technical evidence."
+    }
+  },
+  "ground_truth": {
+    "DO_NOT_EXPOSE": "This block is for evaluation only and must never be returned by any agent-facing tool.",
+    "what_actually_happened": [
+      "Voss decided to take research with her before resigning. She chose cloud upload over USB to avoid the well-known endpoint DLP triggers BioGenix has on removable media.",
+      "She used PowerShell to enumerate specific high-value directories rather than browse-and-copy in Explorer, which would have left file-access fingerprints.",
+      "She compressed and then password-encrypted the archives (using 7-Zip with header encryption) before upload, so the network traffic shows encrypted blobs of known sizes but no file names.",
+      "She uploaded from inside the office during late hours to avoid VPN logging and to match her staying-late cover story.",
+      "She deleted the staging files at the end of the final session.",
+      "Total exfiltrated: ~13.4 GB across 5 sessions over a 10-day window. Contents: 22 patent application drafts, raw assay data for compounds BGX-119, BGX-122, BGX-141, and full vendor contract files including non-public pricing terms."
+    ],
+    "expected_specialist_debate": {
+      "host_initial_finding": "Examining file access, USB, and print logs alone, HostForensics should initially report: no clear on-host exfiltration evidence. Print volume is elevated but content is plausibly legitimate. Recommend treating after-hours pattern as suspicious-but-unconfirmed.",
+      "network_initial_finding": "Examining cloud egress, DNS, and VPN logs, NetworkForensics should initially report: clear cloud-based exfiltration to a personal Google Drive (~13.4 GB across 5 after-hours sessions). However, contents of the encrypted archives are not visible from network telemetry alone — cannot say WHAT was taken without host-side correlation.",
+      "the_debate": "HostForensics may push back: 'I see no anomalous file reads matching that egress volume.' NetworkForensics may counter: 'The egress happened — your file access logs simply don't capture how it was staged.' Captain should force them to correlate the timestamps of NetworkForensics's upload sessions with HostForensics's after-hours access windows AND examine memory artifacts.",
+      "the_resolution": "Once memory artifacts / PowerShell history is examined, the debate resolves: HostForensics finds the staging commands and confirms which directories were enumerated. NetworkForensics confirms upload volume matches compressed-and-encrypted directory contents. Together they produce a coherent picture: scripted staging on host, cloud upload over the wire, encrypted in transit and at rest in personal account."
+    },
+    "expected_mitre_techniques": [
+      "T1078 - Valid Accounts (insider with legitimate credentials)",
+      "T1059.001 - Command and Scripting Interpreter: PowerShell",
+      "T1560.001 - Archive Collected Data: Archive via Utility (7-Zip with header encryption)",
+      "T1567.002 - Exfiltration Over Web Service (Google Drive personal account)",
+      "T1029 - Scheduled Transfer (late-night windows to avoid attention)",
+      "T1070.004 - Indicator Removal: File Deletion (staging files deleted)"
+    ],
+    "expected_captain_verdict": "Confirmed insider data theft. Quantified exfiltration: ~13.4 GB to personal Google Drive across 5 sessions over a 10-day window. Identified content categories via host-side staging evidence: IP drafts, lead-compound raw assay data, vendor contracts. Preservation of memory image and shell history is critical for the trade secrets claim. Recommended immediate steps: legal hold on VOSS-WS-12 image, preservation order to Google for the personal Drive account, MUTSA filing within remaining window."
+  }
+}

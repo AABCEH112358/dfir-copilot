@@ -3,19 +3,24 @@ agents:
     agent_id: "69ad308c-6609-4e4e-b2f5-ffa9a1a76163"
     display_name: "DFIR-Liaison"
     model: "gemini-2.5-flash"
+    api_key_env: LIAISON_API_KEY
   classifier:
     agent_id: "613f4737-b271-40d3-be34-096fd66cb73b"
     display_name: "DFIR-Classifier"
     model: "gemini-2.5-flash"
+    api_key_env: CLASSIFIER_API_KEY
   host_forensics:
-    agent_id: "388abff3-1425-4b5e-a07c-1951090fa31c "
+    agent_id: "388abff3-1425-4b5e-a07c-1951090fa31c"
     display_name: "DFIR-HostForensics"
     model: "gemini-2.5-flash"
+    api_key_env: HOST_FORENSICS_API_KEY
   network_forensics:
     agent_id: "886ef654-2ba8-4fc8-8f03-78a382fa9d8b"
     display_name: "DFIR-NetworkForensics"
     model: "gemini-2.5-flash"
+    api_key_env: NETWORK_FORENSICS_API_KEY
   captain:
     agent_id: "3ee0c142-cf29-40ee-ac0c-99e758f3334e"
     display_name: "DFIR-Captain"
     model: "gemini-2.5-pro"
+    api_key_env: CAPTAIN_API_KEY

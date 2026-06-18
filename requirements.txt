@@ -1,4 +1,4 @@
-band-sdk==1.0.0
+band-sdk[gemini]==1.0.0
 python-dotenv
 pyyaml
 pytest
