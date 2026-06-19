@@ -1,0 +1,222 @@
+{
+  "case_id": "DFIR-2026-001",
+  "opened_at": "2026-06-18T05:24:16.418054+00:00",
+  "closed_at": "2026-06-18T22:46:41.296266+00:00",
+  "case_brief_md": "# Case Brief: DFIR-2026-001\n\n## Incident Summary\nOn Monday morning, June 15, 2026, at approximately 06:42 local time, IT operations at Meridian Logistics began receiving alerts from their EDR platform indicating widespread file encryption across multiple endpoints and at least two file servers. Employees arriving on-site found their workstations displaying a ransom note demanding $2.4M USD in Bitcoin within 72 hours. File extensions on encrypted files have been changed to .lock_b1d. Operations across three warehouse locations have been halted.\n\n## Victim Organization\n- Name: Meridian Logistics Inc.\n- Industry: Third-party logistics and freight forwarding\n- Size: 380 people\n- Location: Columbus, Ohio, USA\n- Compliance context: Ohio Data Protection Act, DOT Hazmat reporting requirements, Customer SLA penalties exceeding $50k/day per major account\n\n## Human Contact\n- Name: Priya Achterberg\n- Role: Director of IT Security\n- Technical skill: 8 years in IT operations, 2 years in security leadership, first major incident of this severity\n- Context: \n\n## Initial Report\n> We're in trouble. About 40% of our shares are encrypted, the file extensions are now .lock_b1d, and there's a ransom note on every desktop. I've isolated the network at the edge but I don't know how they got in or whether they're still inside. EDR woke me up at 4am. I need to know what to collect first \u2014 I've got board members on a call in 90 minutes and they're going to ask whether to pay.\n\n## Liaison's Intake Summary\nThis appears to be a ransomware attack, characterized by widespread file encryption, a ransom note, and a specific file extension (.lock_b1d). The attacker's initial access vector is unknown, and the extent of their presence in the network is also unclear. The incident has halted operations across three warehouse locations.\n\n## Status\n- Phase: INTAKE\n- Last updated: 2026-06-18T05:24:18.197562+00:00\n- Audit chain head: 35a823ac79e61628ed85a8324b14cf2bd7e3a24017f51a2e74b21f9807072b63\n\n## Update at 2026-06-18T05:27:33.039902+00:00: Initial Collection Complete\n\nInitial evidence collection has been completed. Received artifacts include: ransom note, encrypted file samples, EDR alert timeline, firewall and proxy logs, internal DNS query logs, and memory images. \n\nNoted collection gaps:\n- Active Directory Logs: Pending collection when DC team is available.\n- System Event Logs: Older than 7 days are unavailable due to retention policy.\n- Disk Images: Unavailable at this time due to operational impact.\n",
+  "all_findings": [
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "Ransom note 'READ_ME_LOCKB1D.txt' found on multiple hosts, indicating potential compromise and encryption by LockB1D ransomware. The note specifies a file path for the dropped note and lists affected systems.",
+          "evidence_refs": [
+            "ransom_note"
+          ],
+          "mitre_techniques": [
+            "T1486",
+            "T1041",
+            "T1021",
+            "T1547.001"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Confirm the exact method of initial compromise and lateral movement.",
+        "Verify the data exfiltration claim and the amount of data exfiltrated.",
+        "Determine if the listed hosts are the only affected systems or if there are others."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "Analysis of encrypted samples confirms the presence of LockB1D ransomware, identified by the '.lock_b1d' file extension and 'LOCKB1D' header marker. Encrypted files were found on hosts FS-CORE-01, FS-CORE-02, and WS-FIN-014, affecting file types such as .xlsx, .db, and .pdf. Encryption occurred around 2026-06-15 between 05:58:44Z and 06:14:18Z.",
+          "evidence_refs": [
+            "encrypted_sample/0",
+            "encrypted_sample/1",
+            "encrypted_sample/2"
+          ],
+          "mitre_techniques": [
+            "T1486"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Determine the initial access vector for the LockB1D ransomware.",
+        "Identify if any other hosts are affected beyond those listed in the encrypted samples and ransom note.",
+        "Investigate if the encryption process involved any specific tools or techniques beyond standard file encryption."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "EDR alerts indicate a multi-stage attack. Initial access likely occurred on WS-FIN-014 via a suspicious Office macro execution (2026-06-01T14:22:08Z), followed by an outbound connection to a newly observed domain. Lateral movement from WS-FIN-014 to FS-CORE-01 via SMB was detected on 2026-06-08T22:14:00Z. The ransomware attack culminated in mass file modification with the '.lock_b1d' extension on FS-CORE-01 at 2026-06-15T05:51:33Z.",
+          "evidence_refs": [
+            "edr_alerts/0",
+            "edr_alerts/1",
+            "edr_alerts/2",
+            "edr_alerts/3"
+          ],
+          "mitre_techniques": [
+            "T1566.001",
+            "T1071.001",
+            "T1021.002",
+            "T1486"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Investigate the full command line of the powershell execution to understand its payload.",
+        "Analyze network traffic related to 'cdn-cache-prod-447.com' for C2 communication details.",
+        "Determine the extent of lateral movement to other hosts beyond FS-CORE-01 and FS-CORE-02."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "The ransom note indicates that 84GB of sensitive customer data has been exfiltrated. The attackers demand 38 BTC and provide a Tor-based contact address.",
+          "evidence_refs": [
+            "ransom_note"
+          ],
+          "mitre_techniques": [
+            "T1041",
+            "T1486"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Confirm the exact Bitcoin address used for payment.",
+        "Identify the specific Tor address for contact to monitor for activity.",
+        "Determine the method and destination of data exfiltration."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "Network traffic analysis confirms a large data exfiltration event of 89.4 GB from FS-CORE-01 to files.cdn-cache-prod-447.com on 2026-06-13, prior to encryption. Additionally, daily beaconing activity from WS-FIN-014 to cdn-cache-prod-447.com was observed between 2026-06-02 and 2026-06-14, indicating command and control (C2) communication.",
+          "evidence_refs": [
+            "network_traffic"
+          ],
+          "mitre_techniques": [
+            "T1041",
+            "T1071.001",
+            "T1090.002"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Investigate the specific content of the exfiltrated data.",
+        "Analyze the JA3 hash for cdn-cache-prod-447.com to identify potential malware families or tools.",
+        "Correlate beaconing activity with host-based logs for process identification."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-001",
+      "findings": [
+        {
+          "summary": "DNS queries reveal suspicious activity including the resolution of 'cdn-cache-prod-447.com' by WS-FIN-014, a newly observed domain registered only 4 days prior to its first appearance, and recurring daily queries consistent with C2 beaconing. Additionally, 'files.cdn-cache-prod-447.com' was resolved by FS-CORE-01 immediately preceding a large data exfiltration event, indicating its use as an exfiltration staging domain.",
+          "evidence_refs": [
+            "dns_queries"
+          ],
+          "mitre_techniques": [
+            "T1071.001",
+            "T1568.002"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Investigate the full registration details of 'cdn-cache-prod-447.com' and 'files.cdn-cache-prod-447.com' to identify potential threat actor infrastructure.",
+        "Correlate DNS query times with process execution logs on WS-FIN-014 and FS-CORE-01 to identify the specific processes making these queries."
+      ]
+    }
+  ],
+  "captain_verdict": {
+    "kind": "captain_verdict",
+    "case_id": "DFIR-2026-001",
+    "classification": "Ransomware Incident with Data Exfiltration",
+    "subtype": "LockB1D",
+    "threat_actor_attribution": {
+      "group": "Unknown",
+      "confidence": "low"
+    },
+    "initial_access_vector": "Phishing: Spearphishing Attachment",
+    "mitre_techniques": [
+      {
+        "id": "T1566.001",
+        "name": "Phishing: Spearphishing Attachment",
+        "evidence": "EDR alert on WS-FIN-014 for suspicious Office macro execution (evidence_ref: edr_alerts/0)."
+      },
+      {
+        "id": "T1071.001",
+        "name": "Application Layer Protocol: Web Protocols",
+        "evidence": "Outbound connection to newly observed domain cdn-cache-prod-447.com from WS-FIN-014, followed by daily C2 beaconing (evidence_refs: edr_alerts/1, network_traffic, dns_queries)."
+      },
+      {
+        "id": "T1021.002",
+        "name": "Remote Services: SMB/Windows Admin Shares",
+        "evidence": "Lateral movement from WS-FIN-014 to FS-CORE-01 via SMB detected in EDR logs (evidence_ref: edr_alerts/2)."
+      },
+      {
+        "id": "T1041",
+        "name": "Exfiltration Over C2 Channel",
+        "evidence": "Confirmed network traffic showing 89.4 GB of data transferred from FS-CORE-01 to files.cdn-cache-prod-447.com (evidence_ref: network_traffic)."
+      },
+      {
+        "id": "T1486",
+        "name": "Data Encrypted for Impact",
+        "evidence": "Mass file modification with '.lock_b1d' extension on multiple hosts, confirmed by file analysis and EDR alerts (evidence_refs: ransom_note, encrypted_sample/*, edr_alerts/3)."
+      }
+    ],
+    "immediate_actions": [
+      "Isolate all affected hosts immediately: WS-FIN-014, WS-FIN-007, FS-CORE-01, FS-CORE-02.",
+      "Block the C2 domain (cdn-cache-prod-447.com) and exfiltration domain (files.cdn-cache-prod-447.com) at the network perimeter.",
+      "Initiate password resets for all accounts that accessed the compromised systems.",
+      "Begin restoration procedures from verified, clean backups for encrypted data."
+    ],
+    "evidence_preserved": [
+      "ransom_note",
+      "encrypted_sample/0",
+      "encrypted_sample/1",
+      "encrypted_sample/2",
+      "edr_alerts/0",
+      "edr_alerts/1",
+      "edr_alerts/2",
+      "edr_alerts/3",
+      "network_traffic",
+      "dns_queries"
+    ],
+    "regulatory_obligations": [
+      "Engage legal and compliance teams to assess data breach notification requirements due to the confirmed exfiltration of 89.4 GB of data."
+    ],
+    "human_followup_recommended": [
+      "Conduct a full compromise assessment to ensure all persistence and backdoors have been eradicated.",
+      "Analyze the exfiltrated data to determine the specific nature of the compromised information (e.g., PII, financial data).",
+      "Review and enhance phishing awareness training and email security controls."
+    ],
+    "audit_chain_head": "6235a5d6fcd5bc7e3fb1f458f6cf250541e1b29622fbae9b83d555989f45101c"
+  },
+  "liaison_report_md": "# Incident Report: DFIR-2026-001 \u2014 Meridian Logistics Inc. Ransomware Incident with Data Exfiltration\n\n## Summary for the Investigator\nPriya, here is the bottom line. This was a ransomware incident with data exfiltration (the LockB1D ransomware variant). Before any files were locked, the attackers had already copied data out of your network \u2014 so this is a \"double-extortion\" situation: paying a ransom would not undo the data theft. Treat the regulatory notification clock as already running, and keep the network isolated while you work through the steps below.\n\n## What Happened (plain language)\nIn plain terms: the attackers first got in through phishing: spearphishing attachment on a workstation. They stayed quietly for a while, talking to a server they controlled on the internet, then used that foothold to reach your file servers. Before locking anything, they copied a large amount of your data out of the network. Finally they encrypted files and renamed them with a `.lock_b1d` extension, which is what triggered your morning alerts.\n\n## MITRE Mapping with Explanations\n- **T1566.001 \u2014 Phishing: Spearphishing Attachment**: EDR alert on WS-FIN-014 for suspicious Office macro execution (evidence_ref: edr_alerts/0).\n- **T1071.001 \u2014 Application Layer Protocol: Web Protocols**: Outbound connection to newly observed domain cdn-cache-prod-447.com from WS-FIN-014, followed by daily C2 beaconing (evidence_refs: edr_alerts/1, network_traffic, dns_queries).\n- **T1021.002 \u2014 Remote Services: SMB/Windows Admin Shares**: Lateral movement from WS-FIN-014 to FS-CORE-01 via SMB detected in EDR logs (evidence_ref: edr_alerts/2).\n- **T1041 \u2014 Exfiltration Over C2 Channel**: Confirmed network traffic showing 89.4 GB of data transferred from FS-CORE-01 to files.cdn-cache-prod-447.com (evidence_ref: network_traffic).\n- **T1486 \u2014 Data Encrypted for Impact**: Mass file modification with '.lock_b1d' extension on multiple hosts, confirmed by file analysis and EDR alerts (evidence_refs: ransom_note, encrypted_sample/*, edr_alerts/3).\n\n## Evidence Catalog\n| Reference | What it is |\n|-----------|------------|\n| `ransom_note` | The ransom note the attackers left on affected systems. |\n| `encrypted_sample/0` | A sample of one of your encrypted (.lock_b1d) files. |\n| `encrypted_sample/1` | A sample of one of your encrypted (.lock_b1d) files. |\n| `encrypted_sample/2` | A sample of one of your encrypted (.lock_b1d) files. |\n| `edr_alerts/0` | An alert from your endpoint security (EDR) tool. |\n| `edr_alerts/1` | An alert from your endpoint security (EDR) tool. |\n| `edr_alerts/2` | An alert from your endpoint security (EDR) tool. |\n| `edr_alerts/3` | An alert from your endpoint security (EDR) tool. |\n| `network_traffic` | Network records showing outbound data transfers. |\n| `dns_queries` | DNS lookup records (which domains your machines contacted). |\n\n## Recommended Next Steps\n1. Isolate all affected hosts immediately: WS-FIN-014, WS-FIN-007, FS-CORE-01, FS-CORE-02.\n2. Block the C2 domain (cdn-cache-prod-447.com) and exfiltration domain (files.cdn-cache-prod-447.com) at the network perimeter.\n3. Initiate password resets for all accounts that accessed the compromised systems.\n4. Begin restoration procedures from verified, clean backups for encrypted data.\n5. Conduct a full compromise assessment to ensure all persistence and backdoors have been eradicated.\n6. Analyze the exfiltrated data to determine the specific nature of the compromised information (e.g., PII, financial data).\n7. Review and enhance phishing awareness training and email security controls.\n\n## Regulatory Clocks\n- Engage legal and compliance teams to assess data breach notification requirements due to the confirmed exfiltration of 89.4 GB of data.\n- Applicable compliance context for Meridian Logistics Inc.: Ohio Data Protection Act, DOT Hazmat reporting requirements, Customer SLA penalties exceeding $50k/day per major account.\n\n## Chain of Custody\nEvery action in this case is recorded in a tamper-evident SHA-256 hash chain \u2014 each entry is cryptographically linked to the one before it, so any later edit to the record is detectable.\n- Audit chain file: `data/outputs/DFIR-2026-001/audit_chain.jsonl`\n- Total recorded events: 23\n- Audit chain head: `6235a5d6fcd5bc7e3fb1f458f6cf250541e1b29622fbae9b83d555989f45101c`\n- This report is logged as `REPORT_DRAFTED`, and the case is then closed with a terminal `CASE_SEALED` entry.\n",
+  "audit_chain_path": "data/outputs/DFIR-2026-001/audit_chain.jsonl",
+  "audit_chain_head": "d0d8bdc7b249f2972a3896e07f7570c680b64ac897cae8751ea63ade0ba44e96"
+}
