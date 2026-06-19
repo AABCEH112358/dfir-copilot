@@ -121,7 +121,12 @@
   } catch (err) {
     console.error(err);
     loadingEl?.classList.add('hidden');
-    document.getElementById('case-error')?.classList.remove('hidden');
+    const errEl = document.getElementById('case-error');
+    if (errEl) {
+      errEl.classList.remove('hidden');
+      const detail = err?.message || String(err);
+      errEl.innerHTML = `<p class="font-medium">Failed to load case data.</p><p class="text-sm text-red-200/80 mt-2 font-mono break-all">${detail}</p><p class="text-sm text-slate-400 mt-3">Serve from <code class="text-slate-300">viewer/</code>: <code class="text-slate-300">cd viewer &amp;&amp; python3 -m http.server 8080</code> then open <code class="text-slate-300">http://localhost:8080/case/case_${caseNum}.html</code></p>`;
+    }
   }
 
   window.DFIR.initTabs();

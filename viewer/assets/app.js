@@ -31,7 +31,12 @@ function chainBadgeHtml(verifyResult, { compact = false } = {}) {
       ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-medium"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Verified</span>`
       : `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-medium">Chain Verified ✓</span>`;
   }
-  const label = compact ? `Broken seq ${verifyResult.brokenAt}` : `Chain Broken at seq ${verifyResult.brokenAt} ✗`;
+  let label;
+  if (verifyResult.brokenAt != null) {
+    label = compact ? `Broken seq ${verifyResult.brokenAt}` : `Chain Broken at seq ${verifyResult.brokenAt} ✗`;
+  } else {
+    label = compact ? 'Not verified' : (verifyResult.reason || 'Chain verification unavailable');
+  }
   return `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-sm font-medium">${label}</span>`;
 }
 
@@ -58,9 +63,9 @@ function renderVerdictStrip(container, verdict, verifyResult, eventCount, debate
 }
 
 const CASE_META = {
-  '001': { name: 'Meridian Logistics Ransomware', org: 'Meridian Logistics Inc.', location: 'Columbus, Ohio, USA', difficulty: 'low', tagline: 'LockB1D ransomware with confirmed pre-encryption exfiltration', hero: false },
-  '002': { name: 'Vector Insider Threat', org: 'Vector Aerospace', location: 'Mississauga, ON', difficulty: 'medium', tagline: 'Host vs Network debate — the hero demo', hero: true },
-  '003': { name: 'TrueLedger Supply Chain', org: 'TrueLedger SaaS', location: 'Vancouver, BC', difficulty: 'high', tagline: 'Captain re-scopes mid-investigation', hero: false },
+  '001': { name: 'Meridian Logistics Ransomware', org: 'Meridian Logistics Inc.', location: 'Columbus, Ohio, USA', difficulty: 'low', tagline: 'LockB1D ransomware with confirmed pre-encryption exfiltration', hero: true },
+  '002': { name: 'BioGenix Insider Threat', org: 'BioGenix Therapeutics, Inc.', location: 'Cambridge, Massachusetts, USA', difficulty: 'medium', tagline: 'Host says no exfil on endpoint; Network sees 13.4 GB cloud upload', hero: false },
+  '003': { name: 'Confluxe Supply Chain', org: 'Confluxe Systems, Inc.', location: 'Denver, Colorado, USA', difficulty: 'high', tagline: 'Captain re-scopes from web app to npm supply chain', hero: false },
 };
 
 function difficultyBadge(level) {
@@ -76,17 +81,32 @@ function agentStyle(id) {
   return AGENT_COLORS[id] || { bg: 'bg-slate-500/20', text: 'text-slate-400', border: 'border-slate-500/40', dot: 'bg-slate-400' };
 }
 
+function viewerDataUrl(filename) {
+  return new URL(`../data/${filename}`, window.location.href).href;
+}
+
 async function loadCaseFile(caseNum) {
-  const res = await fetch(`../data/case_${caseNum}_output.json`);
-  if (!res.ok) throw new Error(`Failed to load case ${caseNum}`);
+  const url = viewerDataUrl(`case_${caseNum}_output.json`);
+  if (window.location.protocol === 'file:') {
+    throw new Error('Open via a local web server (not file://). From viewer/: python3 -m http.server 8080');
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`case_${caseNum}_output.json not found (HTTP ${res.status}). URL: ${url}`);
   return res.json();
 }
 
 async function loadAuditChain(caseNum) {
-  const res = await fetch(`../data/case_${caseNum}_audit.jsonl`);
-  if (!res.ok) throw new Error(`Failed to load audit chain ${caseNum}`);
+  const url = viewerDataUrl(`case_${caseNum}_audit.jsonl`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`case_${caseNum}_audit.jsonl not found (HTTP ${res.status}). URL: ${url}`);
   const text = await res.text();
-  return text.trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+  return text.trim().split('\n').filter(Boolean).map((line, i) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      throw new Error(`Invalid JSON on line ${i + 1} of case_${caseNum}_audit.jsonl`);
+    }
+  });
 }
 
 function simpleMarkdown(md) {
@@ -145,32 +165,76 @@ function sortKeysDeep(obj) {
 }
 
 /** Match Python json.dumps(obj, sort_keys=True) for audit_trail.py hash compatibility. */
+/** Match Python json.dumps(..., sort_keys=True, ensure_ascii=True) for hash parity. */
+function pythonJsonString(s) {
+  let out = '"';
+  for (const ch of s) {
+    const cp = ch.codePointAt(0);
+    if (cp === 0x22) out += '\\"';
+    else if (cp === 0x5c) out += '\\\\';
+    else if (cp === 0x08) out += '\\b';
+    else if (cp === 0x0c) out += '\\f';
+    else if (cp === 0x0a) out += '\\n';
+    else if (cp === 0x0d) out += '\\r';
+    else if (cp === 0x09) out += '\\t';
+    else if (cp < 0x20) out += '\\u' + cp.toString(16).padStart(4, '0');
+    else if (cp > 0x7f) {
+      if (cp > 0xffff) {
+        const adj = cp - 0x10000;
+        const hi = 0xd800 + (adj >> 10);
+        const lo = 0xdc00 + (adj & 0x3ff);
+        out += '\\u' + hi.toString(16).padStart(4, '0') + '\\u' + lo.toString(16).padStart(4, '0');
+      } else out += '\\u' + cp.toString(16).padStart(4, '0');
+    } else out += ch;
+  }
+  return out + '"';
+}
+
 function pythonCanonicalJson(value) {
   if (value === null) return 'null';
   const t = typeof value;
   if (t === 'boolean') return value ? 'true' : 'false';
   if (t === 'number') return Number.isFinite(value) ? String(value) : 'null';
-  if (t === 'string') return JSON.stringify(value);
+  if (t === 'string') return pythonJsonString(value);
   if (Array.isArray(value)) {
     return '[' + value.map(pythonCanonicalJson).join(', ') + ']';
   }
   if (t === 'object') {
     const keys = Object.keys(value).sort();
-    return '{' + keys.map((k) => JSON.stringify(k) + ': ' + pythonCanonicalJson(value[k])).join(', ') + '}';
+    return '{' + keys.map((k) => pythonJsonString(k) + ': ' + pythonCanonicalJson(value[k])).join(', ') + '}';
   }
   return 'null';
 }
 
+async function digestSha256Hex(text) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('Web Crypto unavailable — open http://localhost:8080 (not file:// or a LAN IP)');
+  }
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function verifyAuditChain(events) {
   const ZERO = '0'.repeat(64);
-  const enc = new TextEncoder();
-  for (const ev of events) {
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.seq !== i) {
+      return { ok: false, brokenAt: ev.seq, reason: 'sequence gap', head: events.at(-1)?.hash ?? null };
+    }
     const fields = { seq: ev.seq, timestamp: ev.timestamp, event_type: ev.event_type, agent_id: ev.agent_id, payload: ev.payload, prev_hash: ev.prev_hash };
-    const buf = await crypto.subtle.digest('SHA-256', enc.encode(pythonCanonicalJson(fields)));
-    const computed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    if (computed !== ev.hash) return { ok: false, brokenAt: ev.seq, reason: 'hash mismatch' };
-    const expectedPrev = ev.seq === 0 ? ZERO : events[ev.seq - 1].hash;
-    if (ev.prev_hash !== expectedPrev) return { ok: false, brokenAt: ev.seq, reason: 'prev_hash break' };
+    let computed;
+    try {
+      computed = await digestSha256Hex(pythonCanonicalJson(fields));
+    } catch (e) {
+      return { ok: false, brokenAt: null, reason: e.message || 'SHA-256 unavailable', head: events.at(-1)?.hash ?? null };
+    }
+    if (computed !== ev.hash) {
+      return { ok: false, brokenAt: ev.seq, reason: 'hash mismatch', head: events.at(-1)?.hash ?? null };
+    }
+    const expectedPrev = i === 0 ? ZERO : events[i - 1].hash;
+    if (ev.prev_hash !== expectedPrev) {
+      return { ok: false, brokenAt: ev.seq, reason: 'prev_hash break', head: events.at(-1)?.hash ?? null };
+    }
   }
   return { ok: true, brokenAt: null, head: events.length ? events[events.length - 1].hash : null };
 }
@@ -186,7 +250,7 @@ function renderAuditChain(container, events, verifyResult, options = {}) {
 
   const badge = verifyResult.ok
     ? `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-sm font-medium">Chain Verified ✓</span>`
-    : `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-sm font-medium">Chain Broken at seq ${verifyResult.brokenAt} ✗</span>`;
+    : `<span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-sm font-medium">${verifyResult.brokenAt != null ? `Chain Broken at seq ${verifyResult.brokenAt} ✗` : (verifyResult.reason || 'Chain verification failed')}</span>`;
 
   const headNote = (() => {
     if (!finalHead) return '';
@@ -331,6 +395,6 @@ if (typeof window !== 'undefined') {
     AGENT_COLORS, CASE_META, DEBATE_EVENTS, loadCaseFile, loadAuditChain, simpleMarkdown,
     verifyAuditChain, renderAuditChain, renderTimeline, renderVerdictStrip, initTabs, activateTab,
     difficultyBadge, agentStyle, formatTimestamp, formatRelativeTime, chainBadgeHtml, mitreTechniqueUrl,
-    wirePlayCaseButton, payloadSummary, pythonCanonicalJson, isDebateEvent,
+    wirePlayCaseButton, payloadSummary, pythonCanonicalJson, digestSha256Hex, isDebateEvent,
   };
 }

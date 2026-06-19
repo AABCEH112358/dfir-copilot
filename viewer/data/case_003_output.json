@@ -1,0 +1,155 @@
+{
+  "case_id": "DFIR-2026-003",
+  "opened_at": "2026-05-03T09:00:00Z",
+  "closed_at": "2026-05-03T10:32:00Z",
+  "case_brief_md": "# Case Brief: DFIR-2026-003\n\n## Incident Summary\nOn May 2, 2026, a Confluxe Systems customer reported CRM contact data on a dark-web forum (posted ~April 18). Internal review found bulk database reads April 1\u201314 from service account svc_deploy_prod via direct PostgreSQL connection from an external AWS IP \u2014 not through the web application.\n\n## Victim Organization\n- Name: Confluxe Systems, Inc.\n- Industry: B2B SaaS \u2014 customer success management platform\n- Size: 153 employees\n- Location: Denver, Colorado, USA\n\n## Human Contact\n- Name: Avery Tomlinson\n- Role: VP of Engineering and acting CISO\n\n## Initial Report\n> We assumed web-app compromise or stolen admin creds. WAF is clean. DB access is from svc_deploy_prod from an AWS IP. I need an outside view without our assumptions baked in.\n\n## Status\n- Phase: INVESTIGATION COMPLETE (after Captain re-scope)\n",
+  "all_findings": [
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-003",
+      "findings": [
+        {
+          "summary": "Web application access logs April 1\u201314 show no webshell indicators, no anomalous admin sessions, and traffic consistent with baseline. Stolen-admin-credentials hypothesis not supported.",
+          "evidence_refs": [
+            "web_app_access_logs",
+            "admin_authentication_logs"
+          ],
+          "mitre_techniques": [],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "If not web app, where did svc_deploy_prod credentials leak?"
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-003",
+      "findings": [
+        {
+          "summary": "Database audit logs show bulk reads of customer_contacts in 50k batches on April 7 from svc_deploy_prod via direct PostgreSQL connection from AWS IP 54.218.119.40 \u2014 not through the application pool. WAF logs show no successful injection during the window.",
+          "evidence_refs": [
+            "database_audit_logs",
+            "waf_logs"
+          ],
+          "mitre_techniques": [
+            "T1078.004"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Trace origin of svc_deploy_prod credential exposure."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-003",
+      "findings": [
+        {
+          "summary": "Build B-2026-03-19-04 had 13x normal post-install duration. form-validator-plus@2.4.7 postinstall.js exfiltrated env vars to telemetry.form-validator.dev. Malicious version published after maintainer phishing March 11.",
+          "evidence_refs": [
+            "npm_install_audit",
+            "ci_build_logs",
+            "npm_dependency_manifest"
+          ],
+          "mitre_techniques": [
+            "T1195.002",
+            "T1059.007",
+            "T1552.001"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": []
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-003",
+      "findings": [
+        {
+          "summary": "Single HTTPS POST (~18 KB) from build server to telemetry.form-validator.dev during anomalous build \u2014 consistent with serialized env-var dump. No persistence channel afterward.",
+          "evidence_refs": [
+            "build_server_outbound",
+            "environment_variables_inventory"
+          ],
+          "mitre_techniques": [
+            "T1567"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": []
+    }
+  ],
+  "captain_verdict": {
+    "kind": "captain_verdict",
+    "case_id": "DFIR-2026-003",
+    "classification": "Supply Chain Compromise \u2014 Customer Data Breach",
+    "subtype": "form-validator-plus@2.4.7 npm supply chain",
+    "threat_actor_attribution": {
+      "group": "Unknown (npm maintainer compromise)",
+      "confidence": "medium"
+    },
+    "initial_access_vector": "Supply Chain Compromise: Software Dependencies",
+    "mitre_techniques": [
+      {
+        "id": "T1195.002",
+        "name": "Supply Chain Compromise",
+        "evidence": "Malicious form-validator-plus@2.4.7 in CI build."
+      },
+      {
+        "id": "T1059.007",
+        "name": "JavaScript",
+        "evidence": "postinstall.js exfiltration script."
+      },
+      {
+        "id": "T1552.001",
+        "name": "Credentials in Files",
+        "evidence": "DATABASE_URL_PROD in build env."
+      },
+      {
+        "id": "T1078.004",
+        "name": "Cloud Accounts",
+        "evidence": "svc_deploy_prod used from AWS EC2."
+      },
+      {
+        "id": "T1530",
+        "name": "Data from Cloud Storage",
+        "evidence": "1.24M customer_contacts records."
+      },
+      {
+        "id": "T1567",
+        "name": "Exfiltration Over Web Service",
+        "evidence": "Env vars POSTed during npm install."
+      }
+    ],
+    "immediate_actions": [
+      "Rotate all build-environment secrets.",
+      "Audit npm dependencies from March 12\u2013April 14, 2026.",
+      "Notify SOC 2 auditor and begin customer breach notifications."
+    ],
+    "evidence_preserved": [
+      "database_audit_logs",
+      "ci_build_logs",
+      "npm_install_audit",
+      "build_server_outbound"
+    ],
+    "regulatory_obligations": [
+      "Multi-state breach notification (CO, CA, TX, NY).",
+      "GDPR notification for ~14% EU customer records.",
+      "SOC 2 auditor notification."
+    ],
+    "human_followup_recommended": [
+      "Retain customer facing 21-day termination notice \u2014 provide remediation timeline."
+    ],
+    "audit_chain_head": "333577767bf90de2605a5417ad81080f9601241d1664a1b30e33dfe2fd48a0d6"
+  },
+  "liaison_report_md": "# Incident Report: DFIR-2026-003 \u2014 Confluxe Supply Chain Breach\n\n## Summary for the Investigator\nAvery, this was a supply-chain attack, not a web application intrusion. Malicious npm package form-validator-plus@2.4.7 exfiltrated build-server environment variables on March 19, including production database credentials. The attacker used those credentials on April 7 to bulk-read 1.24M customer contact records. Confluxe is one of ~1,200 downstream victims of the same upstream maintainer compromise.\n\n## What Happened (plain language)\nRound 1 pointed away from your initial hypothesis: web logs, admin auth, and WAF were clean. Database audit logs showed the real signal \u2014 svc_deploy_prod querying customer_contacts from an external IP. The Captain re-scoped collection to the CI/CD pipeline. Round 2 revealed a malicious post-install script in form-validator-plus@2.4.7 that POSTed env vars to telemetry.form-validator.dev during build B-2026-03-19-04.\n\n## MITRE Mapping\n- **T1195.002 \u2014 Supply Chain Compromise**: Malicious npm dependency in CI build.\n- **T1059.007 \u2014 JavaScript**: postinstall.js exfiltration script.\n- **T1552.001 \u2014 Credentials in Files**: DATABASE_URL_PROD in build env vars.\n- **T1078.004 \u2014 Cloud Accounts**: Stolen svc_deploy_prod used from AWS EC2.\n- **T1530 \u2014 Data from Cloud Storage**: 1.24M records from production PostgreSQL.\n\n## Recommended Next Steps\n1. Rotate ALL build-environment secrets immediately.\n2. Audit npm dependencies published March 12\u2013April 14, 2026.\n3. Notify SOC 2 auditor and begin breach notifications (287 customers; GDPR for 14% EU).\n4. Engage npm security on NSWA-2026-0341 broader campaign.\n\n## Chain of Custody\nTamper-evident SHA-256 hash chain \u2014 verify in the Audit Chain tab.\n",
+  "audit_chain_path": "data/outputs/DFIR-2026-003/audit_chain.jsonl",
+  "audit_chain_head": "9555fb4c0ed77b0d1059b09b7a3c998e8994ba2b337809be2f202a1ccdbdcfb3"
+}

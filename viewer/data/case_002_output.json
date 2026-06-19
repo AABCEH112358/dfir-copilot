@@ -1,0 +1,136 @@
+{
+  "case_id": "DFIR-2026-002",
+  "opened_at": "2026-06-12T14:00:00Z",
+  "closed_at": "2026-06-12T15:04:00Z",
+  "case_brief_md": "# Case Brief: DFIR-2026-002\n\n## Incident Summary\nDr. Lena Voss, Principal Scientist, left BioGenix Therapeutics on June 10, 2026 after a four-week notice period. She is joining Helion Biopharma, a direct competitor. Leadership suspects proprietary research may have been taken during the notice window (May 13\u2013June 10).\n\n## Victim Organization\n- Name: BioGenix Therapeutics, Inc.\n- Industry: Pre-clinical biotech (oncology immunomodulators)\n- Size: 247 employees\n- Location: Cambridge, Massachusetts, USA\n\n## Human Contact\n- Name: Dr. Marcus Chen\n- Role: Co-founder and CEO\n\n## Initial Report\n> Lena Voss left last Friday. She's joining Helion. Badge logs show late nights; IT saw cloud sync traffic. We have 14 days under Massachusetts law to file if she took trade secrets.\n\n## Status\n- Phase: INVESTIGATION COMPLETE\n",
+  "all_findings": [
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-002",
+      "findings": [
+        {
+          "summary": "File access on VOSS-WS-12 during the notice period is within normal range (~84 files/day vs 91 baseline). No USB mass storage connected. Print volume elevated but documents are handoff-related. Initial assessment: no clear on-host exfiltration from file telemetry alone.",
+          "evidence_refs": [
+            "workstation_access_logs",
+            "usb_device_history"
+          ],
+          "mitre_techniques": [
+            "T1078"
+          ],
+          "confidence": "medium"
+        }
+      ],
+      "open_questions": [
+        "Correlate after-hours sessions with network egress volume."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-NetworkForensics",
+      "case_id": "DFIR-2026-002",
+      "findings": [
+        {
+          "summary": "~13.4 GB egressed to personal Google Drive (lena.voss.research@gmail.com) across five after-hours sessions on May 28, May 29, June 2, June 4, and June 6. Encrypted archive uploads; contents not visible from network telemetry alone.",
+          "evidence_refs": [
+            "cloud_egress_logs",
+            "dns_queries"
+          ],
+          "mitre_techniques": [
+            "T1567.002",
+            "T1029"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": [
+        "Identify what was inside the encrypted archives."
+      ]
+    },
+    {
+      "kind": "structured_finding",
+      "specialist": "DFIR-HostForensics",
+      "case_id": "DFIR-2026-002",
+      "findings": [
+        {
+          "summary": "PowerShell history shows Get-ChildItem on IP_drafts, BGX-119/122/141 assay data, and vendor contracts; Compress-Archive and 7-Zip with password; staging files deleted June 6. Explains network egress without matching file-read bursts.",
+          "evidence_refs": [
+            "memory_artifacts"
+          ],
+          "mitre_techniques": [
+            "T1059.001",
+            "T1560.001",
+            "T1070.004"
+          ],
+          "confidence": "high"
+        }
+      ],
+      "open_questions": []
+    }
+  ],
+  "captain_verdict": {
+    "kind": "captain_verdict",
+    "case_id": "DFIR-2026-002",
+    "classification": "Confirmed Insider Data Theft",
+    "subtype": "Dr. Lena Voss \u2014 notice-period exfiltration",
+    "threat_actor_attribution": {
+      "group": "Insider (departing employee)",
+      "confidence": "high"
+    },
+    "initial_access_vector": "Valid Accounts (insider)",
+    "mitre_techniques": [
+      {
+        "id": "T1078",
+        "name": "Valid Accounts",
+        "evidence": "Legitimate BIOGENIX\\lvoss credentials on VOSS-WS-12."
+      },
+      {
+        "id": "T1059.001",
+        "name": "PowerShell",
+        "evidence": "Scripted directory enumeration in memory_artifacts."
+      },
+      {
+        "id": "T1560.001",
+        "name": "Archive via Utility",
+        "evidence": "7-Zip password archives before upload."
+      },
+      {
+        "id": "T1567.002",
+        "name": "Exfiltration to Cloud Storage",
+        "evidence": "~13.4 GB to personal Google Drive."
+      },
+      {
+        "id": "T1029",
+        "name": "Scheduled Transfer",
+        "evidence": "Five after-hours upload sessions."
+      },
+      {
+        "id": "T1070.004",
+        "name": "File Deletion",
+        "evidence": "Staging archives removed June 6."
+      }
+    ],
+    "immediate_actions": [
+      "Legal hold on VOSS-WS-12 forensic image.",
+      "Preservation order to Google for personal Drive account.",
+      "File MUTSA claim within remaining statutory window."
+    ],
+    "evidence_preserved": [
+      "workstation_access_logs",
+      "cloud_egress_logs",
+      "memory_artifacts",
+      "dns_queries"
+    ],
+    "regulatory_obligations": [
+      "Massachusetts Uniform Trade Secrets Act \u2014 14-day pre-suit investigation window.",
+      "Series C diligence disclosure if material IP loss confirmed."
+    ],
+    "human_followup_recommended": [
+      "Engage outside counsel for civil injunctive relief against Helion Biopharma."
+    ],
+    "audit_chain_head": "70f38bab52dcd988d257a1a480b1cb1a6c669d772657c35eecaa25e8874dc4d4"
+  },
+  "liaison_report_md": "# Incident Report: DFIR-2026-002 \u2014 BioGenix Insider Data Theft\n\n## Summary for the Investigator\nMarcus, the investigation confirms intentional data theft by Dr. Lena Voss during her notice period. Approximately 13.4 GB was uploaded to a personal Google Drive account across five after-hours sessions. Host-side PowerShell history reveals scripted staging of patent drafts, lead-compound assay data, and vendor contracts.\n\n## What Happened (plain language)\nOn the endpoint, file-access logs alone looked ambiguous \u2014 Voss accessed files within her normal role. Network telemetry told a different story: large encrypted uploads to lena.voss.research@gmail.com on five late-night sessions. Once memory artifacts were correlated, PowerShell history showed directory enumeration, 7-Zip password archives, manual browser upload, and deletion of staging files.\n\n## MITRE Mapping\n- **T1078 \u2014 Valid Accounts**: Insider used legitimate credentials on VOSS-WS-12.\n- **T1059.001 \u2014 PowerShell**: Scripted collection of R&D directories before compression.\n- **T1560.001 \u2014 Archive via Utility**: 7-Zip with header encryption before upload.\n- **T1567.002 \u2014 Exfiltration to Cloud Storage**: ~13.4 GB to personal Google Drive.\n- **T1029 \u2014 Scheduled Transfer**: After-hours windows May 28\u2013June 6.\n- **T1070.004 \u2014 File Deletion**: Staging archives deleted June 6.\n\n## Recommended Next Steps\n1. Legal hold on VOSS-WS-12 memory image and disk (pre-wipe).\n2. Preservation order to Google for lena.voss.research@gmail.com.\n3. File MUTSA trade-secrets claim within the remaining 14-day window.\n4. Notify Series C diligence counsel if material IP loss is confirmed.\n\n## Chain of Custody\nTamper-evident SHA-256 hash chain \u2014 verify in the Audit Chain tab.\n",
+  "audit_chain_path": "data/outputs/DFIR-2026-002/audit_chain.jsonl",
+  "audit_chain_head": "686070676eec2b1bb3612ec4115d5972400facb27fc65a17434cc0c32d529a98"
+}
